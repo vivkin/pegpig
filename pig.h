@@ -18,8 +18,9 @@ namespace pig
 	{
 		LOGD("Parsing: '%s'", str);
 		LOGD("########################################");
-		context ctx{str, str + strlen(str)};
-		bool result = p.parse(ctx);
+		context ctx{str};
+		bool result = parse(p, ctx);
+		bool result = parse(p, str);
 		LOGD("########################################");
 		LOGD("PEG yoyo %s, reach end %s", result ? "WIN" : "FAIL", ctx.eof() ? "YES" : "NO");
 	}

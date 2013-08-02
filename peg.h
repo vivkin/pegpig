@@ -7,7 +7,6 @@ namespace peg
 		typedef const char *state_t;
 
 		const char *pos;
-		const char *end;
 
 		char operator*()
 		{
@@ -32,13 +31,13 @@ namespace peg
 
 		bool eof()
 		{
-			return pos == end;
+			return *pos != 0;
 		}
 	};
 
 	struct eof
 	{
-		bool parse(context &ctx)
+		template<typename Context> bool parse(Context &ctx)
 		{
 			return ctx.eof();
 		}
@@ -46,7 +45,7 @@ namespace peg
 
 	struct any
 	{
-		bool parse(context &ctx)
+		template<typename Context> bool parse(Context &ctx)
 		{
 			if (!ctx.eof())
 			{
@@ -60,7 +59,7 @@ namespace peg
 	struct one
 	{
 		char c;
-		bool parse(context &ctx)
+		template<typename Context> bool parse(Context &ctx)
 		{
 			if (!ctx.eof() && *ctx == c)
 			{
@@ -75,7 +74,7 @@ namespace peg
 	{
 		char min;
 		char max;
-		bool parse(context &ctx)
+		template<typename Context> bool parse(Context &ctx)
 		{
 			if (!ctx.eof() && (*ctx >= min && *ctx <= max))
 			{
@@ -89,7 +88,7 @@ namespace peg
 	struct set
 	{
 		const char *cstr;
-		bool parse(context &ctx)
+		template<typename Context> bool parse(Context &ctx)
 		{
 			if (!ctx.eof())
 			{
@@ -110,7 +109,7 @@ namespace peg
 	struct literal
 	{
 		const char *cstr;
-		bool parse(context &ctx)
+		template<typename Context> bool parse(Context &ctx)
 		{
 			auto state = ctx.save();
 			for (const char *str = cstr; *str && !ctx.eof(); ++str, ++ctx)
@@ -128,7 +127,7 @@ namespace peg
 	template<typename Subject> struct greedy_option
 	{
 		Subject subject;
-		bool parse(context &ctx)
+		template<typename Context> bool parse(Context &ctx)
 		{
 			auto state = ctx.save();
 			if (!subject.parse(ctx))
@@ -142,7 +141,7 @@ namespace peg
 	template<typename Subject> struct kleene_star
 	{
 		Subject subject;
-		bool parse(context &ctx)
+		template<typename Context> bool parse(Context &ctx)
 		{
 			auto state = ctx.save();
 			if (!subject.parse(ctx))
@@ -163,7 +162,7 @@ namespace peg
 	template<typename Subject> struct kleene_plus
 	{
 		Subject subject;
-		bool parse(context &ctx)
+		template<typename Context> bool parse(Context &ctx)
 		{
 			if (!subject.parse(ctx))
 			{
@@ -182,7 +181,7 @@ namespace peg
 	template<typename Subject> struct and_predicate
 	{
 		Subject subject;
-		bool parse(context &ctx)
+		template<typename Context> bool parse(Context &ctx)
 		{
 			auto state = ctx.save();
 			bool result = subject.parse(ctx);
@@ -194,7 +193,7 @@ namespace peg
 	template<typename Subject> struct not_predicate
 	{
 		Subject subject;
-		bool parse(context &ctx)
+		template<typename Context> bool parse(Context &ctx)
 		{
 			auto state = ctx.save();
 			bool result = !subject.parse(ctx);
@@ -207,7 +206,7 @@ namespace peg
 	{
 		LeftType left;
 		RightType right;
-		bool parse(context &ctx)
+		template<typename Context> bool parse(Context &ctx)
 		{
 			if (!left.parse(ctx))
 			{
@@ -221,7 +220,7 @@ namespace peg
 	{
 		LeftType left;
 		RightType right;
-		bool parse(context &ctx)
+		template<typename Context> bool parse(Context &ctx)
 		{
 			auto state = ctx.save();
 			if (left.parse(ctx))
@@ -237,7 +236,7 @@ namespace peg
 	{
 		Subject subject;
 		Action action;
-		bool parse(context &ctx)
+		template<typename Context> bool parse(Context &ctx)
 		{
 			auto state = ctx.save();
 			if (!subject.parse(ctx))
@@ -309,9 +308,8 @@ namespace peg
 		return {left, right};
 	}
 
-	template<typename Parser> bool parse(const char *begin, const char *end, Parser p)
+	template<typename Grammar, typename Context> bool parse(Grammar g, Context ctx)
 	{
-		context ctx{begin, end};
-		return p.parse(ctx);
+		return g.parse(ctx);
 	}
 }
