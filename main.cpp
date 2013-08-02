@@ -1,19 +1,18 @@
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #define LOG(tag, format, ...) fprintf(stderr, "%s/%s(%s:%d): " format "\n", tag, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
 #define LOGI(...) LOG("I", __VA_ARGS__)
 #define LOGE(...) LOG("E", __VA_ARGS__)
 #define LOGD(...) LOG("D", __VA_ARGS__)
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <string.h>
-
-bool read_file(const char *path, char **buffer)
+bool read_file(const char *path, char **buffer, size_t *buffer_size)
 {
 	struct stat sb;
 	if (stat(path, &sb) != -1)
@@ -28,6 +27,7 @@ bool read_file(const char *path, char **buffer)
 			if (n == sb.st_size)
 			{
 				(*buffer)[sb.st_size] = 0;
+				*buffer_size = sb.st_size;
 				return true;
 			}
 			free(*buffer);
@@ -37,89 +37,32 @@ bool read_file(const char *path, char **buffer)
 	return false;
 }
 
-
 #include "peg.h"
+#include "pig.h"
 
-void peg_grammar_itself()
-{
-	using namespace peg;
-/*
-	// Hierarchical syntax
-	auto Grammar = Spacing Definition+ EndOfFile
-	auto Definition = Identifier LEFTARROW Expression
-	auto Expression = Sequence (SLASH Sequence)*
-	auto Sequence = Prefix*
-	auto Prefix = (AND / NOT)? Suffix
-	auto Suffix = Primary (QUESTION / STAR / PLUS)?
-	auto Primary = Identifier !LEFTARROW
-		/ OPEN Expression CLOSE
-		/ Literal / Class / DOT
-	// Lexical syntax
-	auto Identifier = IdentStart IdentCont* Spacing
-	auto IdentStart = [a-zA-Z_]
-	auto IdentCont = IdentStart / [0-9]
-	auto Literal = [’] (![’] Char)* [’] Spacing
-		/ ["] (!["] Char)* ["] Spacing
-		Class = ’[’ (!’]’ Range)* ’]’ Spacing
-		Range = Char ’-’ Char / Char
-		Char = ’\\’ [nrt’"\[\]\\]
-	auto / ’\\’ [0-2][0-7][0-7]
-	auto / ’\\’ [0-7][0-7]?
-	auto / !’\\’ .
-	auto LEFTARROW = ’<-’ Spacing
-	auto SLASH = ’/’ Spacing
-	auto AND = ’&’ Spacing
-	auto NOT = ’!’ Spacing
-	auto QUESTION = ’?’ Spacing
-	auto STAR = ’*’ Spacing
-	auto PLUS = ’+’ Spacing
-	auto OPEN = ’(’ Spacing
-	auto CLOSE = ’)’ Spacing
-	auto DOT = ’.’ Spacing
-	auto Spacing = *(Space / Comment);
-	auto Comment = '#' >> *(!EndOfLine >> any()) >> EndOfLine;
-	auto Space = one{' '} / one{'\t'} / EndOfLine;
-	auto EndOfLine = (one{'\n'} >> one{'\r'}) / one{'\n'} / one{'\r'};
-	auto EndOfFile = !any();
-*/
-}
-
-namespace peg
-{
-	template<typename Parser> void dparse(const char *str, Parser p)
-	{
-		LOGD("Parsing: '%s'", str);
-		LOGD("########################################");
-		context ctx{str, str + strlen(str)};
-		bool result = p.parse(ctx);
-		LOGD("########################################");
-		LOGD("PEG yoyo %s, reach end %s", result ? "WIN" : "FAIL", ctx.eof() ? "YES" : "NO");
-	}
-}
-
-void act_comment(const char *begin, const char *end)
+void act_string(const char *begin, const char *end)
 {
 	char buffer[1024] {};
-	size_t len = end - begin;
-	memcpy(buffer, begin, len);
-	LOGD("act lambda comment len %zd, data '%s'", len, buffer);
+	size_t n = end - begin;
+	memcpy(buffer, begin, n);
+	LOGD("act string '%s'", buffer);
 }
 
 void act_decimal(const char *begin, const char *end)
 {
-	act_comment(begin, end);
 	LOGD("act decimal %ld", strtol(begin, 0, 10));
 }
 
 void peg_foo()
 {
 	using namespace peg;
+	using namespace pig;
 
 	auto EndOfFile = !any();
 	auto EndOfLine = (one{'\n'} >> one{'\r'}) / one{'\n'} / one{'\r'};
 	auto Space = one{' '} / one{'\t'} / EndOfLine;
 	auto Comment = one{'#'} >> *(!EndOfLine >> any()) >> EndOfLine;
-	auto Commenta = Comment % &act_comment;
+	auto Commenta = marker{"MARKER"} >> Comment % &act_string;
 	auto Spacing = *(Space / Commenta);
 
 	auto ws1 = set{" \t\n\r"};
@@ -131,8 +74,8 @@ void peg_foo()
 
 	dparse(" #foo\n  #213213\ndsad", Spacing);
 	dparse("#dsfsdafgfds foo \t\n7 \n13 042\n", Spacing >> *decimal >> EndOfFile);
-	dparse("foo \n\t    ba$r", literal{"foo"} %&act_comment >> Spacing >> (literal{"bar"} %&act_comment) / literal{"ba$r"} %&act_comment);
-	dparse("foo \n\t    ba$r", "foo"_lit %&act_comment >> Spacing >> ("bar"_lit %&act_comment) / "a$r"_lit %&act_comment);
+	dparse("foo \n\t    ba$r", literal{"foo"} %&act_string >> Spacing >> (literal{"bar"} %&act_string) / literal{"ba$r"} %&act_string);
+	dparse("foo \n\t    ba$r", "foo"_lit %&act_string >> Spacing >> ("bar"_lit %&act_string) / "ba$r"_lit %&act_string);
 	//dparse("777\n13\n042", Spacing >> *decimal >> EndOfFile);
 	//dparse("7\n13\n042", *(+digit >> -Spacing) >> EndOfFile);
 

@@ -4,6 +4,8 @@ namespace peg
 {
 	struct context
 	{
+		typedef const char *state_t;
+
 		const char *pos;
 		const char *end;
 
@@ -16,6 +18,16 @@ namespace peg
 		{
 			++pos;
 			return *this;
+		}
+
+		state_t save()
+		{
+			return pos;
+		}
+
+		void restore(state_t state)
+		{
+			pos = state;
 		}
 
 		bool eof()
@@ -100,12 +112,12 @@ namespace peg
 		const char *cstr;
 		bool parse(context &ctx)
 		{
-			const char *save = ctx.pos;
+			auto state = ctx.save();
 			for (const char *str = cstr; *str && !ctx.eof(); ++str, ++ctx)
 			{
 				if (*str != *ctx)
 				{
-					ctx.pos = save;
+					ctx.restore(state);
 					return false;
 				}
 			}
@@ -118,10 +130,10 @@ namespace peg
 		Subject subject;
 		bool parse(context &ctx)
 		{
-			const char *save = ctx.pos;
+			auto state = ctx.save();
 			if (!subject.parse(ctx))
 			{
-				ctx.pos = save;
+				ctx.restore(state);
 			}
 			return true;
 		}
@@ -132,18 +144,18 @@ namespace peg
 		Subject subject;
 		bool parse(context &ctx)
 		{
-			const char *save = ctx.pos;
+			auto state = ctx.save();
 			if (!subject.parse(ctx))
 			{
-				ctx.pos = save;
+				ctx.restore(state);
 				return true;
 			}
-			save = ctx.pos;
+			state = ctx.save();
 			while (subject.parse(ctx))
 			{
-				save = ctx.pos;
+				state = ctx.save();
 			}
-			ctx.pos = save;
+			ctx.restore(state);
 			return true;
 		}
 	};
@@ -157,12 +169,12 @@ namespace peg
 			{
 				return false;
 			}
-			const char *save = ctx.pos;
+			auto state = ctx.save();
 			while (subject.parse(ctx))
 			{
-				save = ctx.pos;
+				state = ctx.save();
 			}
-			ctx.pos = save;
+			ctx.restore(state);
 			return true;
 		}
 	};
@@ -172,9 +184,9 @@ namespace peg
 		Subject subject;
 		bool parse(context &ctx)
 		{
-			const char *save = ctx.pos;
+			auto state = ctx.save();
 			bool result = subject.parse(ctx);
-			ctx.pos = save;
+			ctx.restore(state);
 			return result;
 		}
 	};
@@ -184,9 +196,9 @@ namespace peg
 		Subject subject;
 		bool parse(context &ctx)
 		{
-			const char *save = ctx.pos;
+			auto state = ctx.save();
 			bool result = !subject.parse(ctx);
-			ctx.pos = save;
+			ctx.restore(state);
 			return result;
 		}
 	};
@@ -211,12 +223,12 @@ namespace peg
 		RightType right;
 		bool parse(context &ctx)
 		{
-			const char *save = ctx.pos;
+			auto state = ctx.save();
 			if (left.parse(ctx))
 			{
 				return true;
 			}
-			ctx.pos = save;
+			ctx.restore(state);
 			return right.parse(ctx);
 		}
 	};
@@ -227,12 +239,12 @@ namespace peg
 		Action action;
 		bool parse(context &ctx)
 		{
-			const char *save = ctx.pos;
+			auto state = ctx.save();
 			if (!subject.parse(ctx))
 			{
 				return false;
 			}
-			action(save, ctx.pos);
+			action(state, ctx.save());
 			return true;
 		}
 	};
