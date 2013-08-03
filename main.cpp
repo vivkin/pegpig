@@ -62,19 +62,20 @@ void foobar()
 	auto Space = one{' '} / one{'\t'} / EndOfLine;
 	auto Comment = one{'#'} >> *(!EndOfLine >> any()) >> EndOfLine;
 	auto Commenta = "MARKER"_dbg >> Comment % &act_string;
-	auto Spacing = *(Space / Commenta);
+	auto Spacing = *(Space / Comment);
 
 	auto space = " \t\n\r"_set;
 	auto digit = "[0-9]"_rng;
 	auto alpha = range{'a', 'z'};
+
+	auto word = +alpha % &act_string >> *space;
+	parse(+word, "foo bar\r\nbaz");
 	auto decimal = +digit % &act_decimal >> *space;
+	parse(+decimal, "7 13 42");
 
 	auto decimal_list = Spacing >> *decimal >> EndOfFile;
-	parse(decimal_list, "#dsfsdafgfds foo \t\n7 \n13 042\n");
-
-	parse(+decimal, "7 13 42");
-	debug_context dbg_ctx("1  22\t333");
-	parse(+decimal, dbg_ctx);
+	debug_context dbg_ctx("#dsfsdafgfds foo \t\n7 \n13 042\n");
+	parse(decimal_list, dbg_ctx);
 }
 
 int main(void)
