@@ -53,7 +53,7 @@ void act_decimal(const char *begin, const char *end)
 	LOGD("act decimal %ld", strtol(begin, 0, 10));
 }
 
-void peg_foo()
+void foobar()
 {
 	using namespace pig;
 
@@ -64,22 +64,24 @@ void peg_foo()
 	auto Commenta = "MARKER"_dbg >> Comment % &act_string;
 	auto Spacing = *(Space / Commenta);
 
-	auto ws1 = set{" \t\n\r"};
-	auto ws = " \t\n\r"_set;
-	auto letter = range{'a', 'z'};
-	auto digit = "[0-9]"_rng;//range{'0', '9'};
-	auto decimal = +digit % &act_decimal >> *ws;
+	auto space = " \t\n\r"_set;
+	auto digit = "[0-9]"_rng;
+	auto alpha = range{'a', 'z'};
+	auto decimal = +digit % &act_decimal >> *space;
+
+	auto decimal_list = Spacing >> *decimal >> EndOfFile;
+	parse(decimal_list, context{"#dsfsdafgfds foo \t\n7 \n13 042\n"});
 
 	parse(+decimal, context{"7 13 42"});
-
-	//dparse(" #foo\n  #213213\ndsad", Spacing);
-	//dparse("#dsfsdafgfds foo \t\n7 \n13 042\n", Spacing >> *decimal >> EndOfFile);
-	//dparse("foo \n\t    ba$r", literal{"foo"} %&act_string >> Spacing >> (literal{"bar"} %&act_string) / literal{"ba$r"} %&act_string);
-	//dparse("foo \n\t    ba$r", "foo"_lit %&act_string >> Spacing >> ("bar"_lit %&act_string) / "ba$r"_lit %&act_string);
+	context ctx{"7 13 42"};
+	parse(+decimal, ctx);
+	ctx.restore("1   2   3");
+	debug_context dbg_ctx(ctx.save());
+	parse(+decimal, dbg_ctx);
 }
 
 int main(void)
 {
-	peg_foo();
+	foobar();
 	exit(EXIT_SUCCESS);
 }

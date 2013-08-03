@@ -37,6 +37,7 @@ namespace pig
 
 	struct eof
 	{
+		typedef eof peg_type;
 		template<typename Context> bool parse(Context &ctx)
 		{
 			return ctx.eof();
@@ -45,6 +46,7 @@ namespace pig
 
 	struct any
 	{
+		typedef any peg_type;
 		template<typename Context> bool parse(Context &ctx)
 		{
 			if (!ctx.eof())
@@ -58,6 +60,7 @@ namespace pig
 
 	struct one
 	{
+		typedef one peg_type;
 		char c;
 		template<typename Context> bool parse(Context &ctx)
 		{
@@ -72,6 +75,7 @@ namespace pig
 
 	struct range
 	{
+		typedef range peg_type;
 		char min;
 		char max;
 		template<typename Context> bool parse(Context &ctx)
@@ -87,6 +91,7 @@ namespace pig
 
 	struct set
 	{
+		typedef set peg_type;
 		const char *cstr;
 		template<typename Context> bool parse(Context &ctx)
 		{
@@ -108,6 +113,7 @@ namespace pig
 
 	struct literal
 	{
+		typedef literal peg_type;
 		const char *cstr;
 		template<typename Context> bool parse(Context &ctx)
 		{
@@ -126,6 +132,7 @@ namespace pig
 
 	template<typename Subject> struct greedy_option
 	{
+		typedef greedy_option<Subject> peg_type;
 		Subject subject;
 		template<typename Context> bool parse(Context &ctx)
 		{
@@ -140,6 +147,7 @@ namespace pig
 
 	template<typename Subject> struct kleene_star
 	{
+		typedef kleene_star<Subject> peg_type;
 		Subject subject;
 		template<typename Context> bool parse(Context &ctx)
 		{
@@ -161,6 +169,7 @@ namespace pig
 
 	template<typename Subject> struct kleene_plus
 	{
+		typedef kleene_plus<Subject> peg_type;
 		Subject subject;
 		template<typename Context> bool parse(Context &ctx)
 		{
@@ -180,6 +189,7 @@ namespace pig
 
 	template<typename Subject> struct and_predicate
 	{
+		typedef and_predicate<Subject> peg_type;
 		Subject subject;
 		template<typename Context> bool parse(Context &ctx)
 		{
@@ -192,6 +202,7 @@ namespace pig
 
 	template<typename Subject> struct not_predicate
 	{
+		typedef not_predicate<Subject> peg_type;
 		Subject subject;
 		template<typename Context> bool parse(Context &ctx)
 		{
@@ -202,10 +213,11 @@ namespace pig
 		}
 	};
 
-	template<typename LeftType, typename RightType> struct sequence
+	template<typename Left, typename Right> struct sequence
 	{
-		LeftType left;
-		RightType right;
+		typedef sequence<Left, Right> peg_type;
+		Left left;
+		Right right;
 		template<typename Context> bool parse(Context &ctx)
 		{
 			if (!left.parse(ctx))
@@ -216,10 +228,11 @@ namespace pig
 		}
 	};
 
-	template<typename LeftType, typename RightType> struct alternative
+	template<typename Left, typename Right> struct alternative
 	{
-		LeftType left;
-		RightType right;
+		typedef alternative<Left, Right> peg_type;
+		Left left;
+		Right right;
 		template<typename Context> bool parse(Context &ctx)
 		{
 			auto state = ctx.save();
@@ -234,6 +247,7 @@ namespace pig
 
 	template<typename Subject, typename Action> struct action
 	{
+		typedef action<Subject, Action> peg_type;
 		Subject subject;
 		Action action;
 		template<typename Context> bool parse(Context &ctx)
@@ -268,42 +282,42 @@ namespace pig
 		return {cstr};
 	}
 
-	template<typename Subject> greedy_option<Subject> operator-(Subject subject)
+	template<typename Subject> greedy_option<typename Subject::peg_type> operator-(Subject subject)
 	{
 		return {subject};
 	}
 
-	template<typename Subject> kleene_star<Subject> operator*(Subject subject)
+	template<typename Subject> kleene_star<typename Subject::peg_type> operator*(Subject subject)
 	{
 		return {subject};
 	}
 
-	template<typename Subject> kleene_plus<Subject> operator+(Subject subject)
+	template<typename Subject> kleene_plus<typename Subject::peg_type> operator+(Subject subject)
 	{
 		return {subject};
 	}
 
-	template<typename Subject> and_predicate<Subject> operator&(Subject subject)
+	template<typename Subject> and_predicate<typename Subject::peg_type> operator&(Subject subject)
 	{
 		return {subject};
 	}
 
-	template<typename Subject> not_predicate<Subject> operator!(Subject subject)
+	template<typename Subject> not_predicate<typename Subject::peg_type> operator!(Subject subject)
 	{
 		return {subject};
 	}
 
-	template<typename LeftType, typename RightType> sequence<LeftType, RightType> operator>>(LeftType const &left, RightType const &right)
+	template<typename Left, typename Right> sequence<typename Left::peg_type, typename Right::peg_type> operator>>(Left const &left, Right const &right)
 	{
 		return {left, right};
 	}
 
-	template<typename LeftType, typename RightType> alternative<LeftType, RightType> operator/(LeftType const &left, RightType const &right)
+	template<typename Left, typename Right> alternative<typename Left::peg_type, typename Right::peg_type> operator/(Left const &left, Right const &right)
 	{
 		return {left, right};
 	}
 
-	template<typename LeftType, typename RightType> action<LeftType, RightType> operator%(LeftType const &left, RightType const &right)
+	template<typename Left, typename Right> action<typename Left::peg_type, Right> operator%(Left const &left, Right const &right)
 	{
 		return {left, right};
 	}

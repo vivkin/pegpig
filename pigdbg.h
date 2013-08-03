@@ -7,36 +7,21 @@ namespace pig
 		int char_count[256] = {0};
 		int total_char_count = 0;
 
-		char operator*()
+		debug_context(const char *src)
 		{
-			return *cur;
+			cur = src;
 		}
 
 		context &operator++()
 		{
-			++cur;
-			LOGD("%c", *cur);
-			return *this;
-		}
-
-		state_t save()
-		{
-			return cur;
-		}
-
-		void restore(state_t state)
-		{
-			cur = state;
-		}
-
-		bool eof()
-		{
-			return *cur != 0;
+			LOGD("dbg_ctx: %c", *cur);
+			return context::operator++();
 		}
 	};
 
 	struct debug_marker
 	{
+		typedef debug_marker peg_type;
 		const char *cstr;
 		template<typename Context> bool parse(Context &ctx)
 		{
