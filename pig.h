@@ -322,8 +322,14 @@ namespace pig
 		return {left, right};
 	}
 
-	template<typename Grammar, typename Context> bool parse(Grammar g, Context ctx)
+	template<typename Grammar, typename Context> bool parse(Grammar g, Context &ctx)
 	{
 		return g.parse(ctx);
+	}
+
+	template<typename Grammar> bool parse(Grammar g, const char *src)
+	{
+		context ctx{src};
+		return parse(g, ctx);
 	}
 }

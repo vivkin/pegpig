@@ -70,13 +70,10 @@ void foobar()
 	auto decimal = +digit % &act_decimal >> *space;
 
 	auto decimal_list = Spacing >> *decimal >> EndOfFile;
-	parse(decimal_list, context{"#dsfsdafgfds foo \t\n7 \n13 042\n"});
+	parse(decimal_list, "#dsfsdafgfds foo \t\n7 \n13 042\n");
 
-	parse(+decimal, context{"7 13 42"});
-	context ctx{"7 13 42"};
-	parse(+decimal, ctx);
-	ctx.restore("1   2   3");
-	debug_context dbg_ctx(ctx.save());
+	parse(+decimal, "7 13 42");
+	debug_context dbg_ctx("1  22\t333");
 	parse(+decimal, dbg_ctx);
 }
 
