@@ -1,44 +1,74 @@
 #pragma once
 
-namespace pig
+namespace peg
 {
-	using namespace peg;
+	template<typename Context> struct debug_context : context
+	{
+		int char_count[256] = {0};
+		int total_char_count = 0;
 
-	struct marker
+		debug_context(Context ctx)
+		{
+			cur = ctx.cur;
+			LOGD("###");
+		}
+
+		~debug_context()
+		{
+			LOGD("###");
+		}
+
+		typedef const char *state_t;
+
+		const char *cur;
+
+		char operator*()
+		{
+			return *cur;
+		}
+
+		context &operator++()
+		{
+			++cur;
+			LOGD("%c", *cur);
+			return *this;
+		}
+
+		state_t save()
+		{
+			return cur;
+		}
+
+		void restore(state_t state)
+		{
+			cur = state;
+		}
+
+		bool eof()
+		{
+			return *cur != 0;
+		}
+	};
+
+	struct debug_marker
 	{
 		const char *cstr;
-		bool parse(context &ctx)
+		template<typename Context> bool parse(Context &ctx)
 		{
 			LOGD("marker: %s", cstr);
 			return true;
 		}
 	};
 
-	template<typename Parser> void dparse(const char *str, Parser p)
+	inline constexpr debug_marker operator"" _dbg(const char *cstr, size_t sz)
 	{
-		LOGD("Parsing: '%s'", str);
-		LOGD("########################################");
-		context ctx{str};
-		bool result = parse(p, ctx);
-		bool result = parse(p, str);
-		LOGD("########################################");
-		LOGD("PEG yoyo %s, reach end %s", result ? "WIN" : "FAIL", ctx.eof() ? "YES" : "NO");
+		return {cstr};
+	}
+
+	template<typename Grammar, typename Context> bool dbg_parse(Grammar g, Context ctx)
+	{
+		debug_context<Context> dbg_ctx(ctx);
+		bool result = g.parse(dbg_ctx);
+		return result;
 	}
 }
-/*
-	struct context
-	struct eof
-	struct any
-	struct one
-	struct range
-	struct set
-	struct literal
-	template<typename Subject> struct greedy_option
-	template<typename Subject> struct kleene_star
-	template<typename Subject> struct kleene_plus
-	template<typename Subject> struct and_predicate
-	template<typename Subject> struct not_predicate
-	template<typename LeftType, typename RightType> struct sequence
-	template<typename LeftType, typename RightType> struct alternative
-	template<typename Subject, typename Action> struct action
-	*/

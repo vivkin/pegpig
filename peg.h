@@ -6,32 +6,32 @@ namespace peg
 	{
 		typedef const char *state_t;
 
-		const char *pos;
+		state_t cur;
 
 		char operator*()
 		{
-			return *pos;
+			return *cur;
 		}
 
 		context &operator++()
 		{
-			++pos;
+			++cur;
 			return *this;
 		}
 
 		state_t save()
 		{
-			return pos;
+			return cur;
 		}
 
 		void restore(state_t state)
 		{
-			pos = state;
+			cur = state;
 		}
 
 		bool eof()
 		{
-			return *pos != 0;
+			return *cur == 0;
 		}
 	};
 

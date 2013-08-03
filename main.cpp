@@ -56,30 +56,26 @@ void act_decimal(const char *begin, const char *end)
 void peg_foo()
 {
 	using namespace peg;
-	using namespace pig;
 
 	auto EndOfFile = !any();
 	auto EndOfLine = (one{'\n'} >> one{'\r'}) / one{'\n'} / one{'\r'};
 	auto Space = one{' '} / one{'\t'} / EndOfLine;
 	auto Comment = one{'#'} >> *(!EndOfLine >> any()) >> EndOfLine;
-	auto Commenta = marker{"MARKER"} >> Comment % &act_string;
+	auto Commenta = "MARKER"_dbg >> Comment % &act_string;
 	auto Spacing = *(Space / Commenta);
 
 	auto ws1 = set{" \t\n\r"};
 	auto ws = " \t\n\r"_set;
 	auto letter = range{'a', 'z'};
 	auto digit = "[0-9]"_rng;//range{'0', '9'};
-	LOGD("%c, %c", digit.min, digit.max);
 	auto decimal = +digit % &act_decimal >> *ws;
 
-	dparse(" #foo\n  #213213\ndsad", Spacing);
-	dparse("#dsfsdafgfds foo \t\n7 \n13 042\n", Spacing >> *decimal >> EndOfFile);
-	dparse("foo \n\t    ba$r", literal{"foo"} %&act_string >> Spacing >> (literal{"bar"} %&act_string) / literal{"ba$r"} %&act_string);
-	dparse("foo \n\t    ba$r", "foo"_lit %&act_string >> Spacing >> ("bar"_lit %&act_string) / "ba$r"_lit %&act_string);
-	//dparse("777\n13\n042", Spacing >> *decimal >> EndOfFile);
-	//dparse("7\n13\n042", *(+digit >> -Spacing) >> EndOfFile);
+	parse(+decimal, context{"7 13 42"});
 
-	//dparse("#foo bar\nnomore", Comment);
+	//dparse(" #foo\n  #213213\ndsad", Spacing);
+	//dparse("#dsfsdafgfds foo \t\n7 \n13 042\n", Spacing >> *decimal >> EndOfFile);
+	//dparse("foo \n\t    ba$r", literal{"foo"} %&act_string >> Spacing >> (literal{"bar"} %&act_string) / literal{"ba$r"} %&act_string);
+	//dparse("foo \n\t    ba$r", "foo"_lit %&act_string >> Spacing >> ("bar"_lit %&act_string) / "ba$r"_lit %&act_string);
 }
 
 int main(void)
