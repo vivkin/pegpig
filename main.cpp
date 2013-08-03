@@ -37,8 +37,8 @@ bool read_file(const char *path, char **buffer, size_t *buffer_size)
 	return false;
 }
 
-#include "peg.h"
 #include "pig.h"
+#include "pigdbg.h"
 
 void act_string(const char *begin, const char *end)
 {
@@ -55,7 +55,7 @@ void act_decimal(const char *begin, const char *end)
 
 void peg_foo()
 {
-	using namespace peg;
+	using namespace pig;
 
 	auto EndOfFile = !any();
 	auto EndOfLine = (one{'\n'} >> one{'\r'}) / one{'\n'} / one{'\r'};
