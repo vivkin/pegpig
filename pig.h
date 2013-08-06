@@ -2,11 +2,44 @@
 
 namespace pig
 {
+	struct state
+	{
+		const char *pos;
+		const char *line;
+		int number;
+
+		char operator*()
+		{
+			return *pos;
+		}
+
+		state &operator++()
+		{
+			char ch = *pos;
+			++pos;
+			if (ch == '\n')
+			{
+				line = pos;
+				++number;
+			}
+			return *this;
+		}
+
+		operator const char *()
+		{
+			return pos;
+		}
+	};
+
 	struct context
 	{
-		typedef const char *state_t;
+		state cur;
 
-		state_t cur;
+		context(const char *src)
+		{
+			cur.pos = cur.line = src;
+			cur.number = 0;
+		}
 
 		char operator*()
 		{
@@ -19,12 +52,12 @@ namespace pig
 			return *this;
 		}
 
-		state_t save()
+		state save()
 		{
 			return cur;
 		}
 
-		void restore(state_t saved)
+		void restore(const state &saved)
 		{
 			cur = saved;
 		}
@@ -117,12 +150,12 @@ namespace pig
 		const char *cstr;
 		template<typename Context> bool parse(Context &ctx)
 		{
-			auto state = ctx.save();
+			auto save = ctx.save();
 			for (const char *str = cstr; *str && !ctx.eof(); ++str, ++ctx)
 			{
 				if (*str != *ctx)
 				{
-					ctx.restore(state);
+					ctx.restore(save);
 					return false;
 				}
 			}
@@ -136,10 +169,10 @@ namespace pig
 		Subject subject;
 		template<typename Context> bool parse(Context &ctx)
 		{
-			auto state = ctx.save();
+			auto save = ctx.save();
 			if (!subject.parse(ctx))
 			{
-				ctx.restore(state);
+				ctx.restore(save);
 			}
 			return true;
 		}
@@ -151,18 +184,18 @@ namespace pig
 		Subject subject;
 		template<typename Context> bool parse(Context &ctx)
 		{
-			auto state = ctx.save();
+			auto save = ctx.save();
 			if (!subject.parse(ctx))
 			{
-				ctx.restore(state);
+				ctx.restore(save);
 				return true;
 			}
-			state = ctx.save();
+			save = ctx.save();
 			while (subject.parse(ctx))
 			{
-				state = ctx.save();
+				save = ctx.save();
 			}
-			ctx.restore(state);
+			ctx.restore(save);
 			return true;
 		}
 	};
@@ -177,12 +210,12 @@ namespace pig
 			{
 				return false;
 			}
-			auto state = ctx.save();
+			auto save = ctx.save();
 			while (subject.parse(ctx))
 			{
-				state = ctx.save();
+				save = ctx.save();
 			}
-			ctx.restore(state);
+			ctx.restore(save);
 			return true;
 		}
 	};
@@ -193,9 +226,9 @@ namespace pig
 		Subject subject;
 		template<typename Context> bool parse(Context &ctx)
 		{
-			auto state = ctx.save();
+			auto save = ctx.save();
 			bool result = subject.parse(ctx);
-			ctx.restore(state);
+			ctx.restore(save);
 			return result;
 		}
 	};
@@ -206,9 +239,9 @@ namespace pig
 		Subject subject;
 		template<typename Context> bool parse(Context &ctx)
 		{
-			auto state = ctx.save();
+			auto save = ctx.save();
 			bool result = !subject.parse(ctx);
-			ctx.restore(state);
+			ctx.restore(save);
 			return result;
 		}
 	};
@@ -235,12 +268,12 @@ namespace pig
 		Right right;
 		template<typename Context> bool parse(Context &ctx)
 		{
-			auto state = ctx.save();
+			auto save = ctx.save();
 			if (left.parse(ctx))
 			{
 				return true;
 			}
-			ctx.restore(state);
+			ctx.restore(save);
 			return right.parse(ctx);
 		}
 	};
@@ -252,12 +285,12 @@ namespace pig
 		Action action;
 		template<typename Context> bool parse(Context &ctx)
 		{
-			auto state = ctx.save();
+			auto save = ctx.save();
 			if (!subject.parse(ctx))
 			{
 				return false;
 			}
-			action(state, ctx.save());
+			action(save, ctx.save());
 			return true;
 		}
 	};
