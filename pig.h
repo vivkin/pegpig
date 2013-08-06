@@ -282,27 +282,27 @@ namespace pig
 		return {cstr};
 	}
 
-	template<typename Subject> greedy_option<typename Subject::peg_type> operator-(Subject subject)
+	template<typename Subject> greedy_option<typename Subject::peg_type> operator-(Subject const &subject)
 	{
 		return {subject};
 	}
 
-	template<typename Subject> kleene_star<typename Subject::peg_type> operator*(Subject subject)
+	template<typename Subject> kleene_star<typename Subject::peg_type> operator*(Subject const &subject)
 	{
 		return {subject};
 	}
 
-	template<typename Subject> kleene_plus<typename Subject::peg_type> operator+(Subject subject)
+	template<typename Subject> kleene_plus<typename Subject::peg_type> operator+(Subject const &subject)
 	{
 		return {subject};
 	}
 
-	template<typename Subject> and_predicate<typename Subject::peg_type> operator&(Subject subject)
+	template<typename Subject> and_predicate<typename Subject::peg_type> operator&(Subject const &subject)
 	{
 		return {subject};
 	}
 
-	template<typename Subject> not_predicate<typename Subject::peg_type> operator!(Subject subject)
+	template<typename Subject> not_predicate<typename Subject::peg_type> operator!(Subject const &subject)
 	{
 		return {subject};
 	}
