@@ -2,36 +2,69 @@
 
 namespace pig
 {
-	struct debug_context : context
+	struct state
 	{
-		int char_count[256] = {0};
-		int total_char_count = 0;
+		const char *pos;
+		const char *line;
+		int number;
+
+		char operator*()
+		{
+			return *pos;
+		}
+
+		state &operator++()
+		{
+			char ch = *pos;
+			++pos;
+			if (ch == '\n')
+			{
+				line = pos;
+				++number;
+			}
+			return *this;
+		}
+
+		operator const char *()
+		{
+			return pos;
+		}
+	};
+
+	struct debug_context
+	{
+		state cur;
 
 		debug_context(const char *src)
 		{
-			cur = src;
+			cur.pos = cur.line = src;
+			cur.number = 0;
 		}
 
-		context &operator++()
+		char operator*()
 		{
-			LOGD("dbg_ctx: %c", *cur);
-			return context::operator++();
+			return *cur;
+		}
+
+		debug_context &operator++()
+		{
+			++cur;
+			return *this;
+		}
+
+		state save()
+		{
+			return cur;
+		}
+
+		void restore(const state &saved)
+		{
+			cur = saved;
+		}
+
+		bool eof()
+		{
+			return *cur == 0;
 		}
 	};
-
-	struct debug_marker
-	{
-		typedef debug_marker peg_type;
-		const char *cstr;
-		template<typename Context> bool parse(Context &ctx)
-		{
-			LOGD("marker: %s", cstr);
-			return true;
-		}
-	};
-
-	inline constexpr debug_marker operator"" _dbg(const char *cstr, size_t sz)
-	{
-		return {cstr};
-	}
 }

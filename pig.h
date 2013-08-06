@@ -24,9 +24,9 @@ namespace pig
 			return cur;
 		}
 
-		void restore(state_t state)
+		void restore(state_t saved)
 		{
-			cur = state;
+			cur = saved;
 		}
 
 		bool eof()
