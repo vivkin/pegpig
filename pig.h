@@ -344,7 +344,7 @@ namespace pig
 			{
 				return false;
 			}
-			action(save, ctx.save());
+			action(ctx, save, ctx.save());
 			return true;
 		}
 	};
