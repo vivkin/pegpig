@@ -44,27 +44,32 @@ template<typename Context> struct rule
 {
 	typedef rule peg_type;
 
-	struct rule_base
+	struct rule_def
 	{
-		virtual ~rule_base()
+		struct rule_base
 		{
-		}
-		virtual bool parse(Context &ctx) = 0;
+			virtual ~rule_base()
+			{
+			}
+			virtual bool parse(Context &ctx) = 0;
+		};
+
+		template<typename Subject> struct rule_subject : rule_base
+		{
+			Subject subject;
+			rule_subject(Subject const &subject): subject(subject)
+			{
+			}
+			virtual bool parse(Context &ctx)
+			{
+				return subject.parse(ctx);
+			}
+		};
+
+		std::unique_ptr<rule_base> subject;
 	};
 
-	template<typename Subject> struct rule_def : rule_base
-	{
-		Subject subject;
-		rule_def(Subject const &subject): subject(subject)
-		{
-		}
-		virtual bool parse(Context &ctx)
-		{
-			return subject.parse(ctx);
-		}
-	};
-
-	std::shared_ptr<rule_base> def;
+	std::shared_ptr<rule_def> def = std::make_shared<rule_def>();
 
 	rule() = default;
 	rule(const rule &) = default;
@@ -72,23 +77,18 @@ template<typename Context> struct rule
 
 	template<typename Subject> rule(Subject const &subject)
 	{
-		def.reset(new rule_def<Subject>(subject));
+		def->subject.reset(new rule_def::rule_subject<Subject>(subject));
 	}
 
 	template<typename Subject> rule &operator=(Subject const &subject)
 	{
-		def.reset(new rule_def<Subject>(subject));
+		def->subject.reset(new rule_def::rule_subject<Subject>(subject));
 		return *this;
 	}
 
 	bool parse(Context &ctx)
 	{
-		return def && def->parse(ctx);
-		if (def)
-		{
-			return def->parse(ctx);
-		}
-		return false;
+		return def->subject && def->subject->parse(ctx);
 	}
 };
 
@@ -131,8 +131,7 @@ void foobar()
 	parse(+decimal, "7 13 42");
 
 	auto decimal_list = (Spacing >> *decimal >> EndOfFile) % &act_dbg;
-	context dbg_ctx("#dsfsdafgfds foo \t\n7 \n13 042\n");
-	parse(decimal_list, dbg_ctx);
+	parse(decimal_list, "#dsfsdafgfds foo \t\n7 \n13 042\n");
 
 	auto x = u8R"prefix(This is a Unicode Character: \u2018.)prefix";
 	LOGD("%s", x);
@@ -143,30 +142,31 @@ void calc()
 	using namespace pig;
 	typedef rule<context> rule;
 
-	auto act_print = [](const char *begin, const char *end)
+	auto act_dbg = [](state begin, state end)
 	{
-		LOGD("act print '%.*s'", int(end - begin), begin);
+		int row = begin.number + 1;
+		int col = begin.pos - begin.line + 1;
+		LOGD("act dbg %d:%d:'%.*s'", row, col, int(end.pos - begin.pos), begin.pos);
 	};
 
 	auto space = *" \t"_set;
 	auto eol = "\r\n"_lit / "\n\r"_set / eof();
-	auto left_brace = '('_ch % act_print >> space;
-	auto right_brace = ')'_ch % act_print >> space;
-	auto add = '+'_ch % act_print >> space;
-	auto sub = '-'_ch % act_print >> space;
-	auto mul = '*'_ch % act_print >> space;
-	auto div = '/'_ch % act_print >> space;
+	auto left_brace = '('_ch % act_dbg >> space;
+	auto right_brace = ')'_ch % act_dbg >> space;
+	auto add = '+'_ch % act_dbg >> space;
+	auto sub = '-'_ch % act_dbg >> space;
+	auto mul = '*'_ch % act_dbg >> space;
+	auto div = '/'_ch % act_dbg >> space;
 	auto digit = "[0-9]"_rng;
-	auto number = +digit % act_print >> space;
+	auto number = +digit % act_dbg >> space;
 
 	rule expr;
 	auto value = number / (left_brace >> expr >> right_brace);
 	auto product = value >> *((mul >> value) / (div >> value));
 	auto sum = product >> *((add >> product) / (sub >> product));
-	expr = sum >> eol;
+	expr = sum;
 
-	context dbg_ctx("3 + ( 7 - 11 ) * 20");
-	parse(expr, dbg_ctx);
+	parse(expr, "3 + 5 / ( 7 - 11 ) * 20");
 }
 
 int main()
