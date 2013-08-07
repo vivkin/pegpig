@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 namespace pig
 {
 	struct state
@@ -65,6 +67,58 @@ namespace pig
 		bool eof()
 		{
 			return *cur == 0;
+		}
+	};
+
+	template<typename Context = context> struct rule
+	{
+		typedef rule peg_type;
+
+		struct rule_def
+		{
+			struct rule_base
+			{
+				virtual ~rule_base()
+				{
+				}
+				virtual bool parse(Context &ctx) = 0;
+			};
+
+			template<typename Subject> struct rule_subject : rule_base
+			{
+				Subject subject;
+				rule_subject(Subject const &subject): subject(subject)
+				{
+				}
+				virtual bool parse(Context &ctx)
+				{
+					return subject.parse(ctx);
+				}
+			};
+
+			std::unique_ptr<rule_base> subject;
+		};
+
+		std::shared_ptr<rule_def> def = std::make_shared<rule_def>();
+
+		rule() = default;
+		rule(const rule &) = default;
+		rule &operator=(const rule &) = default;
+
+		template<typename Subject> rule(Subject const &subject)
+		{
+			def->subject.reset(new rule_def::rule_subject<Subject>(subject));
+		}
+
+		template<typename Subject> rule &operator=(Subject const &subject)
+		{
+			def->subject.reset(new rule_def::rule_subject<Subject>(subject));
+			return *this;
+		}
+
+		bool parse(Context &ctx)
+		{
+			return def->subject && def->subject->parse(ctx);
 		}
 	};
 
@@ -355,14 +409,9 @@ namespace pig
 		return {left, right};
 	}
 
-	template<typename Grammar, typename Context> bool parse(Grammar g, Context &ctx)
-	{
-		return g.parse(ctx);
-	}
-
 	template<typename Grammar> bool parse(Grammar g, const char *src)
 	{
 		context ctx{src};
-		return parse(g, ctx);
+		return g.parse(ctx) && ctx.eof();
 	}
 }

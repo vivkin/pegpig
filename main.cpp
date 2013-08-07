@@ -40,58 +40,6 @@ bool read_file(const char *path, char **buffer, size_t *buffer_size)
 #include "pig.h"
 #include <memory>
 
-template<typename Context> struct rule
-{
-	typedef rule peg_type;
-
-	struct rule_def
-	{
-		struct rule_base
-		{
-			virtual ~rule_base()
-			{
-			}
-			virtual bool parse(Context &ctx) = 0;
-		};
-
-		template<typename Subject> struct rule_subject : rule_base
-		{
-			Subject subject;
-			rule_subject(Subject const &subject): subject(subject)
-			{
-			}
-			virtual bool parse(Context &ctx)
-			{
-				return subject.parse(ctx);
-			}
-		};
-
-		std::unique_ptr<rule_base> subject;
-	};
-
-	std::shared_ptr<rule_def> def = std::make_shared<rule_def>();
-
-	rule() = default;
-	rule(const rule &) = default;
-	rule &operator=(const rule &) = default;
-
-	template<typename Subject> rule(Subject const &subject)
-	{
-		def->subject.reset(new rule_def::rule_subject<Subject>(subject));
-	}
-
-	template<typename Subject> rule &operator=(Subject const &subject)
-	{
-		def->subject.reset(new rule_def::rule_subject<Subject>(subject));
-		return *this;
-	}
-
-	bool parse(Context &ctx)
-	{
-		return def->subject && def->subject->parse(ctx);
-	}
-};
-
 
 void act_dbg(pig::state begin, pig::state end)
 {
@@ -120,12 +68,11 @@ void foobar()
 	auto Comment = one{'#'} >> *(!EndOfLine >> any()) >> EndOfLine;
 	auto Spacing = *(Space / Comment) % act_print;
 
-	typedef rule<context> rule;
 	auto space = " \t\n\r"_set;
 	auto digit = "[0-9]"_rng;
-	rule alpha = range{'a', 'z'};
+	rule<> alpha = range{'a', 'z'};
 
-	rule word = +alpha % act_print >> *space;
+	rule<> word = +alpha % act_print >> *space;
 	parse(+word, "foo bar\r\nbaz");
 	auto decimal = +digit % act_decimal >> *space;
 	parse(+decimal, "7 13 42");
@@ -140,7 +87,6 @@ void foobar()
 void calc()
 {
 	using namespace pig;
-	typedef rule<context> rule;
 
 	auto act_dbg = [](state begin, state end)
 	{
@@ -160,13 +106,13 @@ void calc()
 	auto digit = "[0-9]"_rng;
 	auto number = +digit % act_dbg >> space;
 
-	rule expr;
+	rule<> expr;
 	auto value = number / (left_brace >> expr >> right_brace);
 	auto product = value >> *((mul >> value) / (div >> value));
 	auto sum = product >> *((add >> product) / (sub >> product));
 	expr = sum;
 
-	parse(expr, "3 + 5 / ( 7 - 11 ) * 20");
+	parse(expr, "(3) + 5 / ( 7 - 11 ) * 20 + (3+5/(7-11)*20)");
 }
 
 int main()
