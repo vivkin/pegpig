@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(pegpig)
 set(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++ -Wall -fno-rtti -fno-exceptions -msse4")
-set(CMAKE_LINK_FLAGS "-stdlib=libc++")
+#set(CMAKE_LINK_FLAGS "-stdlib=libc++")
 add_executable(pig main.cpp)
 add_executable(calc calc.cpp)

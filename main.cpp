@@ -8,19 +8,19 @@ void foobar()
 {
 	using namespace pig;
 
-	auto act_dbg = [](const state &begin, const state &end)
+	auto act_dbg = [](context &ctx, const state &begin, const state &end)
 	{
 		int row = begin.number + 1;
 		int col = begin.pos - begin.line + 1;
 		LOG(D, "act dbg %d:%d:'%.*s'", row, col, int(end.pos - begin.pos), begin.pos);
 	};
 
-	auto act_print = [](const char *begin, const char *end)
+	auto act_print = [](context &ctx, const char *begin, const char *end)
 	{
 		LOG(D, "act print '%.*s'", int(end - begin), begin);
 	};
 
-	auto act_decimal = [](const char *begin, const char *end)
+	auto act_decimal = [](context &ctx, const char *begin, const char *end)
 	{
 		LOG(D, "act decimal %ld", strtol(begin, 0, 10));
 	};
