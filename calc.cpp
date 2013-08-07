@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <stack>
 #include "pig.h"
@@ -28,41 +29,28 @@ pig::rule<calc_context> calc_grammar()
 		ctx.stack.push(strtod(begin.pos, 0));
 	};
 
-	auto act_add = [](calc_context &ctx, const state &begin, const state &end)
+	auto act_op = [](calc_context &ctx, const state &begin, const state &end)
 	{
 		auto r = ctx.stack.top();
 		ctx.stack.pop();
 		auto l = ctx.stack.top();
 		ctx.stack.pop();
-		LOG(D, "%f + %f", l, r);
-		ctx.stack.push(l + r);
-	};
-	auto act_sub = [](calc_context &ctx, const state &begin, const state &end)
-	{
-		auto r = ctx.stack.top();
-		ctx.stack.pop();
-		auto l = ctx.stack.top();
-		ctx.stack.pop();
-		LOG(D, "%f - %f", l, r);
-		ctx.stack.push(l - r);
-	};
-	auto act_mul = [](calc_context &ctx, const state &begin, const state &end)
-	{
-		auto r = ctx.stack.top();
-		ctx.stack.pop();
-		auto l = ctx.stack.top();
-		ctx.stack.pop();
-		LOG(D, "%f * %f", l, r);
-		ctx.stack.push(l * r);
-	};
-	auto act_div = [](calc_context &ctx, const state &begin, const state &end)
-	{
-		auto r = ctx.stack.top();
-		ctx.stack.pop();
-		auto l = ctx.stack.top();
-		ctx.stack.pop();
-		LOG(D, "%f / %f", l, r);
-		ctx.stack.push(l / r);
+		LOG(D, "%.2f %.1s %.2f", l, begin.pos, r);
+		switch (begin.pos[0])
+		{
+			case '+':
+				ctx.stack.push(l + r);
+				break;
+			case '-':
+				ctx.stack.push(l - r);
+				break;
+			case '*':
+				ctx.stack.push(l * r);
+				break;
+			case '/':
+				ctx.stack.push(l / r);
+				break;
+		}
 	};
 
 	auto space = *" \t"_set;
@@ -77,8 +65,8 @@ pig::rule<calc_context> calc_grammar()
 
 	rule<calc_context> sum;
 	auto value = number / (left_brace >> sum >> right_brace);
-	auto product = value >> *(((mul >> value) % act_mul) / ((div >> value) % act_div));
-	sum = product >> *(((add >> product) % act_add) / ((sub >> product) % act_sub));
+	auto product = value >> *(((mul >> value) % act_op) / ((div >> value) % act_op));
+	sum = product >> *(((add >> product) % act_op) / ((sub >> product) % act_op));
 
 	return sum >> eol;
 }
