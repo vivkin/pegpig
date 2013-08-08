@@ -53,15 +53,15 @@ pig::rule<calc_context> calc_grammar()
 		}
 	};
 
-	auto space = *" \t"_set;
 	auto eol = "\r\n"_lit / "\n\r"_set / eof();
+	auto space = *" \t"_set;
 	auto left_brace = '('_ch >> space;
 	auto right_brace = ')'_ch >> space;
 	auto add = '+'_ch >> space;
 	auto sub = '-'_ch >> space;
 	auto mul = '*'_ch >> space;
 	auto div = '/'_ch >> space;
-	auto number = (-"-+"_set >> +"[0-9]"_rng) % act_dbg % act_n >> space;
+	auto number = (-"-+"_set >> +"[0-9]"_rng) % act_n >> space;
 
 	rule<calc_context> sum;
 	auto value = number / (left_brace >> sum >> right_brace);
@@ -84,7 +84,7 @@ int main()
 			{
 				double v = ctx.stack.top();
 				ctx.stack.pop();
-				LOG(D, "%f", v);
+				LOG(D, "%.2f", v);
 			}
 		}
 		else
