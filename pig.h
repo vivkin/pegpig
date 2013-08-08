@@ -75,8 +75,8 @@ namespace pig
 		std::shared_ptr<rule_def> def = std::make_shared<rule_def>();
 
 		rule() = default;
-		rule(const rule &) = default;
-		rule &operator=(const rule &) = default;
+		rule(rule const &) = default;
+		rule &operator=(rule const &) = default;
 
 		template<typename Subject> rule(Subject const &subject)
 		{

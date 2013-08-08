@@ -4,15 +4,19 @@
 
 #define LOG(tag, format, ...) fprintf(stderr, "%s/%s(%s:%d): " format "\n", #tag, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
 
-pig::rule<> json_grammar()
+template<typename Scanner> pig::rule<Scanner> json_grammar()
 {
 	using namespace pig;
+	typedef typename Scanner::context_type context_type;
+	typedef typename Scanner::iterator_type iterator_type;
+	typedef rule<Scanner> rule_type;
 
-	auto act_dbg = [](context &ctx, const state &begin, const state &end)
+	auto act_prnt = [](context_type &state, const iterator_type &begin, const iterator_type &end)
 	{
-		int row = begin.number + 1;
+		LOG(D, "prnt '%.*s'", int(end - begin), &*begin);
+		/*int row = begin.number + 1;
 		int col = begin.pos - begin.line + 1;
-		LOG(D, "act_dbg %d:%d:'%.*s'", row, col, int(end.pos - begin.pos), begin.pos);
+		LOG(D, "act_dbg %d:%d:'%.*s'", row, col, int(end.pos - begin.pos), begin.pos);*/
 	};
 
 	auto ws = *" \t\r\n"_set;
@@ -23,13 +27,13 @@ pig::rule<> json_grammar()
 	auto simpleescape = '\\'_ch >> "\"\\/bfnrt"_set;
 	auto hexescape = "\\u"_lit >> +hexdigit;
 	auto stringchar = simpleescape / hexescape / (!'\\'_ch >> any());
-	auto string = '"'_ch >> *(!'"'_ch >> stringchar) % act_dbg >> '"'_ch >> ws;
+	auto string = '"'_ch >> *(!'"'_ch >> stringchar) % act_prnt >> '"'_ch >> ws;
 
 	auto fraction = (*digit >> '.'_ch >> +digit) / (+digit >> '.'_ch);
 	auto exponent = "eE"_set >> -sign >> +digit;
-	auto number = (-sign >> (fraction >> -exponent) / (+digit >> exponent) / +digit) % act_dbg >> ws;
+	auto number = (-sign >> (fraction >> -exponent) / (+digit >> exponent) / +digit) % act_prnt >> ws;
 
-	rule<> value;
+	rule_type value;
 	auto colon = ':'_ch >> ws;
 	auto pair = string >> colon >> value;
 	auto comma = ','_ch >> ws;
@@ -50,15 +54,19 @@ int main()
 		LOG(D, "%zd", n);
 		input.insert(input.end(), buffer, buffer + n);
 	}
-	auto g = json_grammar();
-	pig::context ctx(input.data());
-	if (g.parse(ctx) && ctx.eof())
+
+	typedef pig::scanner<int, std::vector<char>::iterator> scanner_type;
+	int state = 0;
+	scanner_type scanner(state, input.begin(), input.end());
+	auto grammar = json_grammar<scanner_type>();
+	if (grammar.parse(scanner) && scanner.eof())
 	{
 	}
 	else
 	{
-		int row = ctx.cur.number + 1;
+		LOG(D, "Error %s", &*scanner.position);
+		/*int row = ctx.cur.number + 1;
 		int col = ctx.cur.pos - ctx.cur.line + 1;
-		LOG(D, "Error %d:%d:'%s'", row, col, ctx.cur.pos);
+		LOG(D, "Error %d:%d:'%s'", row, col, ctx.cur.pos);*/
 	}
 }

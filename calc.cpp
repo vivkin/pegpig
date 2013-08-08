@@ -5,13 +5,12 @@
 
 #define LOG(tag, format, ...) fprintf(stderr, "%s/%s(%s:%d): " format "\n", #tag, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
 
-typedef pig::scanner<std::stack<double>, const char *> calc_scanner;
-
 template<typename Scanner> pig::rule<Scanner> calc_grammar()
 {
+	using namespace pig;
 	typedef typename Scanner::context_type context_type;
 	typedef typename Scanner::iterator_type iterator_type;
-	using namespace pig;
+	typedef rule<Scanner> rule_type;
 
 	auto act_n = [](context_type &state, const iterator_type &begin, const iterator_type &end)
 	{
@@ -52,7 +51,7 @@ template<typename Scanner> pig::rule<Scanner> calc_grammar()
 	auto div = '/'_ch >> space;
 	auto number = (-"-+"_set >> +"[0-9]"_rng) % act_n >> space;
 
-	rule<Scanner> sum;
+	rule_type sum;
 	auto value = number / (left_brace >> sum >> right_brace);
 	auto product = value >> *(((mul >> value) % act_op) / ((div >> value) % act_op));
 	sum = product >> *(((add >> product) % act_op) / ((sub >> product) % act_op));
@@ -62,6 +61,7 @@ template<typename Scanner> pig::rule<Scanner> calc_grammar()
 
 int main()
 {
+	typedef pig::scanner<std::stack<double>, const char *> calc_scanner;
 	auto g = calc_grammar<calc_scanner>();
 	char buffer[1024];
 	while (fgets(buffer, sizeof(buffer), stdin))
