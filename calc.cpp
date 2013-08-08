@@ -5,45 +5,41 @@
 
 #define LOG(tag, format, ...) fprintf(stderr, "%s/%s(%s:%d): " format "\n", #tag, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
 
-struct calc_context : pig::context
-{
-	std::stack<double> stack;
-	calc_context(const char *src): pig::context(src)
-	{
-	}
-};
+typedef pig::scanner<std::stack<double>, const char *> calc_scanner;
 
-pig::rule<calc_context> calc_grammar()
+template<typename Scanner> pig::rule<Scanner> calc_grammar()
 {
+	typedef typename Scanner::context_type context_type;
+	typedef typename Scanner::iterator_type iterator_type;
 	using namespace pig;
 
-	auto act_n = [](calc_context &ctx, const state &begin, const state &end)
+	auto act_n = [](context_type &state, const iterator_type &begin, const iterator_type &end)
 	{
-		ctx.stack.push(strtod(begin.pos, 0));
+		state.push(strtod(begin, 0));
 	};
 
-	auto act_op = [](calc_context &ctx, const state &begin, const state &end)
+	auto act_op = [](context_type &state, const iterator_type &begin, const iterator_type &end)
 	{
-		auto r = ctx.stack.top();
-		ctx.stack.pop();
-		auto l = ctx.stack.top();
-		ctx.stack.pop();
-		LOG(D, "%.2f %.1s %.2f", l, begin.pos, r);
-		switch (begin.pos[0])
+		auto r = state.top();
+		state.pop();
+		auto l = state.top();
+		state.pop();
+		switch (begin[0])
 		{
 			case '+':
-				ctx.stack.push(l + r);
+				state.push(l + r);
 				break;
 			case '-':
-				ctx.stack.push(l - r);
+				state.push(l - r);
 				break;
 			case '*':
-				ctx.stack.push(l * r);
+				state.push(l * r);
 				break;
 			case '/':
-				ctx.stack.push(l / r);
+				state.push(l / r);
 				break;
 		}
+		LOG(D, "%.2f %.1s %.2f = %.2f (%zd)", l, begin, r, state.top(), state.size());
 	};
 
 	auto eol = "\r\n"_lit / "\n\r"_set / eof();
@@ -56,7 +52,7 @@ pig::rule<calc_context> calc_grammar()
 	auto div = '/'_ch >> space;
 	auto number = (-"-+"_set >> +"[0-9]"_rng) % act_n >> space;
 
-	rule<calc_context> sum;
+	rule<Scanner> sum;
 	auto value = number / (left_brace >> sum >> right_brace);
 	auto product = value >> *(((mul >> value) % act_op) / ((div >> value) % act_op));
 	sum = product >> *(((add >> product) % act_op) / ((sub >> product) % act_op));
@@ -66,23 +62,24 @@ pig::rule<calc_context> calc_grammar()
 
 int main()
 {
-	auto g = calc_grammar();
+	auto g = calc_grammar<calc_scanner>();
 	char buffer[1024];
 	while (fgets(buffer, sizeof(buffer), stdin))
 	{
-		calc_context ctx(buffer);
-		if (g.parse(ctx) && ctx.eof())
+		std::stack<double> state;
+		calc_scanner scn(state, buffer, buffer + strlen(buffer));
+		if (g.parse(scn) && scn.eof())
 		{
-			while (!ctx.stack.empty())
+			while (!state.empty())
 			{
-				double v = ctx.stack.top();
-				ctx.stack.pop();
+				double v = state.top();
+				state.pop();
 				LOG(D, "%.2f", v);
 			}
 		}
 		else
 		{
-			LOG(E, "Parsing error: '%s'", ctx.cur.pos);
+			LOG(E, "Parsing error: '%s'", scn.position);
 		}
 	}
 }

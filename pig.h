@@ -4,84 +4,18 @@
 
 namespace pig
 {
-	struct state
+	template<typename Context, typename Iterator> struct scanner
 	{
-		const char *pos;
-		const char *line;
-		int number;
+		typedef Context context_type;
+		typedef Iterator iterator_type;
 
-		char operator*()
+		context_type &state;
+		iterator_type position;
+		iterator_type end;
+
+		scanner(context_type &state, iterator_type const &begin, iterator_type const &end): state(state), position(begin), end(end)
 		{
-			return *pos;
 		}
-
-		state &operator++()
-		{
-			char ch = *pos;
-			++pos;
-			if (ch == '\n')
-			{
-				line = pos;
-				++number;
-			}
-			return *this;
-		}
-
-		operator const char *()
-		{
-			return pos;
-		}
-	};
-
-	struct context
-	{
-		state cur;
-
-		context(const char *src = nullptr)
-		{
-			cur.pos = cur.line = src;
-			cur.number = 0;
-		}
-
-		char operator*()
-		{
-			return *cur;
-		}
-
-		context &operator++()
-		{
-			++cur;
-			return *this;
-		}
-
-		state save()
-		{
-			return cur;
-		}
-
-		void restore(const state &saved)
-		{
-			cur = saved;
-		}
-
-		bool eof()
-		{
-			return *cur == 0;
-		}
-	};
-
-	template<typename Iterator> struct location
-	{
-		Iterator position;
-		int line = -1;
-	};
-
-	template<typename Context, typename Iterator, typename Location> struct scanner
-	{
-		Context state;
-		Iterator begin;
-		Iterator end;
-		Iterator position;
 
 		char operator*()
 		{
@@ -93,12 +27,12 @@ namespace pig
 			++position;
 		}
 
-		Iterator save()
+		iterator_type save()
 		{
 			return position;
 		}
 
-		void restore(const Iterator &saved)
+		void restore(iterator_type const &saved)
 		{
 			position = saved;
 		}
@@ -109,7 +43,7 @@ namespace pig
 		}
 	};
 
-	template<typename Context = context> struct rule
+	template<typename Scanner> struct rule
 	{
 		typedef rule peg_type;
 
@@ -120,7 +54,7 @@ namespace pig
 				virtual ~rule_base()
 				{
 				}
-				virtual bool parse(Context &ctx) = 0;
+				virtual bool parse(Scanner &scn) = 0;
 			};
 
 			template<typename Subject> struct rule_subject : rule_base
@@ -129,9 +63,9 @@ namespace pig
 				rule_subject(Subject const &subject): subject(subject)
 				{
 				}
-				virtual bool parse(Context &ctx)
+				virtual bool parse(Scanner &scn)
 				{
-					return subject.parse(ctx);
+					return subject.parse(scn);
 				}
 			};
 
@@ -155,29 +89,29 @@ namespace pig
 			return *this;
 		}
 
-		bool parse(Context &ctx)
+		bool parse(Scanner &scn)
 		{
-			return def->subject && def->subject->parse(ctx);
+			return def->subject && def->subject->parse(scn);
 		}
 	};
 
 	struct eof
 	{
 		typedef eof peg_type;
-		template<typename Context> bool parse(Context &ctx)
+		template<typename Scanner> bool parse(Scanner &scn)
 		{
-			return ctx.eof();
+			return scn.eof();
 		}
 	};
 
 	struct any
 	{
 		typedef any peg_type;
-		template<typename Context> bool parse(Context &ctx)
+		template<typename Scanner> bool parse(Scanner &scn)
 		{
-			if (!ctx.eof())
+			if (!scn.eof())
 			{
-				++ctx;
+				scn.next();
 				return true;
 			}
 			return false;
@@ -188,11 +122,11 @@ namespace pig
 	{
 		typedef one peg_type;
 		char c;
-		template<typename Context> bool parse(Context &ctx)
+		template<typename Scanner> bool parse(Scanner &scn)
 		{
-			if (!ctx.eof() && *ctx == c)
+			if (!scn.eof() && *scn == c)
 			{
-				++ctx;
+				scn.next();
 				return true;
 			}
 			return false;
@@ -204,11 +138,11 @@ namespace pig
 		typedef range peg_type;
 		char min;
 		char max;
-		template<typename Context> bool parse(Context &ctx)
+		template<typename Scanner> bool parse(Scanner &scn)
 		{
-			if (!ctx.eof() && (*ctx >= min && *ctx <= max))
+			if (!scn.eof() && (*scn >= min && *scn <= max))
 			{
-				++ctx;
+				scn.next();
 				return true;
 			}
 			return false;
@@ -219,16 +153,16 @@ namespace pig
 	{
 		typedef set peg_type;
 		const char *cstr;
-		template<typename Context> bool parse(Context &ctx)
+		template<typename Scanner> bool parse(Scanner &scn)
 		{
-			if (!ctx.eof())
+			if (!scn.eof())
 			{
-				char ref = *ctx;
+				char ref = *scn;
 				for (const char *str = cstr; *str; ++str)
 				{
 					if (*str == ref)
 					{
-						++ctx;
+						scn.next();
 						return true;
 					}
 				}
@@ -241,14 +175,14 @@ namespace pig
 	{
 		typedef literal peg_type;
 		const char *cstr;
-		template<typename Context> bool parse(Context &ctx)
+		template<typename Scanner> bool parse(Scanner &scn)
 		{
-			auto save = ctx.save();
-			for (const char *str = cstr; *str && !ctx.eof(); ++str, ++ctx)
+			auto save = scn.save();
+			for (const char *str = cstr; *str && !scn.eof(); ++str, scn.next())
 			{
-				if (*str != *ctx)
+				if (*str != *scn)
 				{
-					ctx.restore(save);
+					scn.restore(save);
 					return false;
 				}
 			}
@@ -260,12 +194,12 @@ namespace pig
 	{
 		typedef greedy_option<Subject> peg_type;
 		Subject subject;
-		template<typename Context> bool parse(Context &ctx)
+		template<typename Scanner> bool parse(Scanner &scn)
 		{
-			auto save = ctx.save();
-			if (!subject.parse(ctx))
+			auto save = scn.save();
+			if (!subject.parse(scn))
 			{
-				ctx.restore(save);
+				scn.restore(save);
 			}
 			return true;
 		}
@@ -275,20 +209,20 @@ namespace pig
 	{
 		typedef kleene_star<Subject> peg_type;
 		Subject subject;
-		template<typename Context> bool parse(Context &ctx)
+		template<typename Scanner> bool parse(Scanner &scn)
 		{
-			auto save = ctx.save();
-			if (!subject.parse(ctx))
+			auto save = scn.save();
+			if (!subject.parse(scn))
 			{
-				ctx.restore(save);
+				scn.restore(save);
 				return true;
 			}
-			save = ctx.save();
-			while (subject.parse(ctx))
+			save = scn.save();
+			while (subject.parse(scn))
 			{
-				save = ctx.save();
+				save = scn.save();
 			}
-			ctx.restore(save);
+			scn.restore(save);
 			return true;
 		}
 	};
@@ -297,18 +231,18 @@ namespace pig
 	{
 		typedef kleene_plus<Subject> peg_type;
 		Subject subject;
-		template<typename Context> bool parse(Context &ctx)
+		template<typename Scanner> bool parse(Scanner &scn)
 		{
-			if (!subject.parse(ctx))
+			if (!subject.parse(scn))
 			{
 				return false;
 			}
-			auto save = ctx.save();
-			while (subject.parse(ctx))
+			auto save = scn.save();
+			while (subject.parse(scn))
 			{
-				save = ctx.save();
+				save = scn.save();
 			}
-			ctx.restore(save);
+			scn.restore(save);
 			return true;
 		}
 	};
@@ -317,11 +251,11 @@ namespace pig
 	{
 		typedef and_predicate<Subject> peg_type;
 		Subject subject;
-		template<typename Context> bool parse(Context &ctx)
+		template<typename Scanner> bool parse(Scanner &scn)
 		{
-			auto save = ctx.save();
-			bool result = subject.parse(ctx);
-			ctx.restore(save);
+			auto save = scn.save();
+			bool result = subject.parse(scn);
+			scn.restore(save);
 			return result;
 		}
 	};
@@ -330,11 +264,11 @@ namespace pig
 	{
 		typedef not_predicate<Subject> peg_type;
 		Subject subject;
-		template<typename Context> bool parse(Context &ctx)
+		template<typename Scanner> bool parse(Scanner &scn)
 		{
-			auto save = ctx.save();
-			bool result = !subject.parse(ctx);
-			ctx.restore(save);
+			auto save = scn.save();
+			bool result = !subject.parse(scn);
+			scn.restore(save);
 			return result;
 		}
 	};
@@ -344,13 +278,13 @@ namespace pig
 		typedef sequence<Left, Right> peg_type;
 		Left left;
 		Right right;
-		template<typename Context> bool parse(Context &ctx)
+		template<typename Scanner> bool parse(Scanner &scn)
 		{
-			if (!left.parse(ctx))
+			if (!left.parse(scn))
 			{
 				return false;
 			}
-			return right.parse(ctx);
+			return right.parse(scn);
 		}
 	};
 
@@ -359,15 +293,15 @@ namespace pig
 		typedef alternative<Left, Right> peg_type;
 		Left left;
 		Right right;
-		template<typename Context> bool parse(Context &ctx)
+		template<typename Scanner> bool parse(Scanner &scn)
 		{
-			auto save = ctx.save();
-			if (left.parse(ctx))
+			auto save = scn.save();
+			if (left.parse(scn))
 			{
 				return true;
 			}
-			ctx.restore(save);
-			return right.parse(ctx);
+			scn.restore(save);
+			return right.parse(scn);
 		}
 	};
 
@@ -376,14 +310,14 @@ namespace pig
 		typedef action<Subject, Action> peg_type;
 		Subject subject;
 		Action action;
-		template<typename Context> bool parse(Context &ctx)
+		template<typename Scanner> bool parse(Scanner &scn)
 		{
-			auto save = ctx.save();
-			if (!subject.parse(ctx))
+			auto save = scn.save();
+			if (!subject.parse(scn))
 			{
 				return false;
 			}
-			action(ctx, save, ctx.save());
+			action(scn.state, save, scn.save());
 			return true;
 		}
 	};
@@ -446,11 +380,5 @@ namespace pig
 	template<typename Left, typename Right> action<typename Left::peg_type, Right> operator%(Left const &left, Right const &right)
 	{
 		return {left, right};
-	}
-
-	template<typename Grammar> bool parse(Grammar g, const char *src)
-	{
-		context ctx{src};
-		return g.parse(ctx) && ctx.eof();
 	}
 }
