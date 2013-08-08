@@ -42,20 +42,20 @@ template<typename Scanner, typename Context> pig::rule<Scanner, Context> calc_gr
 
 	auto eol = "\r\n"_lit / "\n\r"_set / eof();
 	auto space = *" \t"_set;
-	auto left_brace = '('_ch >> space;
-	auto right_brace = ')'_ch >> space;
-	auto add = '+'_ch >> space;
-	auto sub = '-'_ch >> space;
-	auto mul = '*'_ch >> space;
-	auto div = '/'_ch >> space;
-	auto number = (-"-+"_set >> +"[0-9]"_rng) % act_n >> space;
+	auto left_brace = '('_ch > space;
+	auto right_brace = ')'_ch > space;
+	auto add = '+'_ch > space;
+	auto sub = '-'_ch > space;
+	auto mul = '*'_ch > space;
+	auto div = '/'_ch > space;
+	auto number = (-"-+"_set > +"[0-9]"_rng) % act_n > space;
 
 	rule_type sum;
-	auto value = number / (left_brace >> sum >> right_brace);
-	auto product = value >> *(((mul >> value) % act_op) / ((div >> value) % act_op));
-	sum = product >> *(((add >> product) % act_op) / ((sub >> product) % act_op));
+	auto value = number / (left_brace > sum > right_brace);
+	auto product = value > *(((mul > value) % act_op) / ((div > value) % act_op));
+	sum = product > *(((add > product) % act_op) / ((sub > product) % act_op));
 
-	return sum >> eol;
+	return sum > eol;
 }
 
 int main()

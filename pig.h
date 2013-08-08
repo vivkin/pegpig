@@ -365,7 +365,7 @@ namespace pig
 		return {subject};
 	}
 
-	template<typename Left, typename Right> sequence<typename Left::peg_type, typename Right::peg_type> operator>>(Left const &left, Right const &right)
+	template<typename Left, typename Right> sequence<typename Left::peg_type, typename Right::peg_type> operator>(Left const &left, Right const &right)
 	{
 		return {left, right};
 	}
