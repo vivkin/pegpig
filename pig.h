@@ -4,16 +4,14 @@
 
 namespace pig
 {
-	template<typename Context, typename Iterator> struct scanner
+	template<typename Iterator> struct scanner
 	{
-		typedef Context context_type;
 		typedef Iterator iterator_type;
 
-		context_type &state;
 		iterator_type position;
 		iterator_type end;
 
-		scanner(context_type &state, iterator_type const &begin, iterator_type const &end): state(state), position(begin), end(end)
+		scanner(iterator_type const &begin, iterator_type const &end): position(begin), end(end)
 		{
 		}
 
@@ -43,7 +41,7 @@ namespace pig
 		}
 	};
 
-	template<typename Scanner> struct rule
+	template<typename Scanner, typename Context> struct rule
 	{
 		typedef rule peg_type;
 
@@ -54,7 +52,7 @@ namespace pig
 				virtual ~rule_base()
 				{
 				}
-				virtual bool parse(Scanner &scn) = 0;
+				virtual bool parse(Scanner &scn, Context &ctx) = 0;
 			};
 
 			template<typename Subject> struct rule_subject : rule_base
@@ -63,9 +61,9 @@ namespace pig
 				rule_subject(Subject const &subject): subject(subject)
 				{
 				}
-				virtual bool parse(Scanner &scn)
+				virtual bool parse(Scanner &scn, Context &ctx)
 				{
-					return subject.parse(scn);
+					return subject.parse(scn, ctx);
 				}
 			};
 
@@ -89,16 +87,16 @@ namespace pig
 			return *this;
 		}
 
-		bool parse(Scanner &scn)
+		bool parse(Scanner &scn, Context &ctx)
 		{
-			return def->subject && def->subject->parse(scn);
+			return def->subject && def->subject->parse(scn, ctx);
 		}
 	};
 
 	struct eof
 	{
 		typedef eof peg_type;
-		template<typename Scanner> bool parse(Scanner &scn)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			return scn.eof();
 		}
@@ -107,7 +105,7 @@ namespace pig
 	struct any
 	{
 		typedef any peg_type;
-		template<typename Scanner> bool parse(Scanner &scn)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			if (!scn.eof())
 			{
@@ -122,7 +120,7 @@ namespace pig
 	{
 		typedef one peg_type;
 		char c;
-		template<typename Scanner> bool parse(Scanner &scn)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			if (!scn.eof() && *scn == c)
 			{
@@ -138,7 +136,7 @@ namespace pig
 		typedef range peg_type;
 		char min;
 		char max;
-		template<typename Scanner> bool parse(Scanner &scn)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			if (!scn.eof() && (*scn >= min && *scn <= max))
 			{
@@ -153,7 +151,7 @@ namespace pig
 	{
 		typedef set peg_type;
 		const char *cstr;
-		template<typename Scanner> bool parse(Scanner &scn)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			if (!scn.eof())
 			{
@@ -175,7 +173,7 @@ namespace pig
 	{
 		typedef literal peg_type;
 		const char *cstr;
-		template<typename Scanner> bool parse(Scanner &scn)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			auto save = scn.save();
 			for (const char *str = cstr; *str && !scn.eof(); ++str, scn.next())
@@ -194,10 +192,10 @@ namespace pig
 	{
 		typedef greedy_option<Subject> peg_type;
 		Subject subject;
-		template<typename Scanner> bool parse(Scanner &scn)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			auto save = scn.save();
-			if (!subject.parse(scn))
+			if (!subject.parse(scn, ctx))
 			{
 				scn.restore(save);
 			}
@@ -209,16 +207,16 @@ namespace pig
 	{
 		typedef kleene_star<Subject> peg_type;
 		Subject subject;
-		template<typename Scanner> bool parse(Scanner &scn)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			auto save = scn.save();
-			if (!subject.parse(scn))
+			if (!subject.parse(scn, ctx))
 			{
 				scn.restore(save);
 				return true;
 			}
 			save = scn.save();
-			while (subject.parse(scn))
+			while (subject.parse(scn, ctx))
 			{
 				save = scn.save();
 			}
@@ -231,14 +229,14 @@ namespace pig
 	{
 		typedef kleene_plus<Subject> peg_type;
 		Subject subject;
-		template<typename Scanner> bool parse(Scanner &scn)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
-			if (!subject.parse(scn))
+			if (!subject.parse(scn, ctx))
 			{
 				return false;
 			}
 			auto save = scn.save();
-			while (subject.parse(scn))
+			while (subject.parse(scn, ctx))
 			{
 				save = scn.save();
 			}
@@ -251,10 +249,10 @@ namespace pig
 	{
 		typedef and_predicate<Subject> peg_type;
 		Subject subject;
-		template<typename Scanner> bool parse(Scanner &scn)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			auto save = scn.save();
-			bool result = subject.parse(scn);
+			bool result = subject.parse(scn, ctx);
 			scn.restore(save);
 			return result;
 		}
@@ -264,10 +262,10 @@ namespace pig
 	{
 		typedef not_predicate<Subject> peg_type;
 		Subject subject;
-		template<typename Scanner> bool parse(Scanner &scn)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			auto save = scn.save();
-			bool result = !subject.parse(scn);
+			bool result = !subject.parse(scn, ctx);
 			scn.restore(save);
 			return result;
 		}
@@ -278,13 +276,13 @@ namespace pig
 		typedef sequence<Left, Right> peg_type;
 		Left left;
 		Right right;
-		template<typename Scanner> bool parse(Scanner &scn)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
-			if (!left.parse(scn))
+			if (!left.parse(scn, ctx))
 			{
 				return false;
 			}
-			return right.parse(scn);
+			return right.parse(scn, ctx);
 		}
 	};
 
@@ -293,15 +291,15 @@ namespace pig
 		typedef alternative<Left, Right> peg_type;
 		Left left;
 		Right right;
-		template<typename Scanner> bool parse(Scanner &scn)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			auto save = scn.save();
-			if (left.parse(scn))
+			if (left.parse(scn, ctx))
 			{
 				return true;
 			}
 			scn.restore(save);
-			return right.parse(scn);
+			return right.parse(scn, ctx);
 		}
 	};
 
@@ -310,14 +308,14 @@ namespace pig
 		typedef action<Subject, Action> peg_type;
 		Subject subject;
 		Action action;
-		template<typename Scanner> bool parse(Scanner &scn)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			auto save = scn.save();
-			if (!subject.parse(scn))
+			if (!subject.parse(scn, ctx))
 			{
 				return false;
 			}
-			action(scn.state, save, scn.save());
+			action(save, scn.save(), ctx);
 			return true;
 		}
 	};

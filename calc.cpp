@@ -5,40 +5,39 @@
 
 #define LOG(tag, format, ...) fprintf(stderr, "%s/%s(%s:%d): " format "\n", #tag, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
 
-template<typename Scanner> pig::rule<Scanner> calc_grammar()
+template<typename Scanner, typename Context> pig::rule<Scanner, Context> calc_grammar()
 {
 	using namespace pig;
-	typedef typename Scanner::context_type context_type;
 	typedef typename Scanner::iterator_type iterator_type;
-	typedef rule<Scanner> rule_type;
+	typedef rule<Scanner, Context> rule_type;
 
-	auto act_n = [](context_type &state, const iterator_type &begin, const iterator_type &end)
+	auto act_n = [](const iterator_type &begin, const iterator_type &end, Context &ctx)
 	{
-		state.push(strtod(begin, 0));
+		ctx.push(strtod(begin, 0));
 	};
 
-	auto act_op = [](context_type &state, const iterator_type &begin, const iterator_type &end)
+	auto act_op = [](const iterator_type &begin, const iterator_type &end, Context &ctx)
 	{
-		auto r = state.top();
-		state.pop();
-		auto l = state.top();
-		state.pop();
+		auto r = ctx.top();
+		ctx.pop();
+		auto l = ctx.top();
+		ctx.pop();
 		switch (begin[0])
 		{
 			case '+':
-				state.push(l + r);
+				ctx.push(l + r);
 				break;
 			case '-':
-				state.push(l - r);
+				ctx.push(l - r);
 				break;
 			case '*':
-				state.push(l * r);
+				ctx.push(l * r);
 				break;
 			case '/':
-				state.push(l / r);
+				ctx.push(l / r);
 				break;
 		}
-		LOG(D, "%.2f %.1s %.2f = %.2f (%zd)", l, begin, r, state.top(), state.size());
+		LOG(D, "%.2f %.1s %.2f = %.2f (%zd)", l, begin, r, ctx.top(), ctx.size());
 	};
 
 	auto eol = "\r\n"_lit / "\n\r"_set / eof();
@@ -61,14 +60,15 @@ template<typename Scanner> pig::rule<Scanner> calc_grammar()
 
 int main()
 {
-	typedef pig::scanner<std::stack<double>, const char *> calc_scanner;
-	auto g = calc_grammar<calc_scanner>();
+	typedef pig::scanner<const char *> calc_scanner;
+	typedef std::stack<double> calc_context;
+	auto grammar = calc_grammar<calc_scanner, calc_context>();
 	char buffer[1024];
 	while (fgets(buffer, sizeof(buffer), stdin))
 	{
-		std::stack<double> state;
-		calc_scanner scn(state, buffer, buffer + strlen(buffer));
-		if (g.parse(scn) && scn.eof())
+		calc_scanner scanner(buffer, buffer + strlen(buffer));
+		calc_context state;
+		if (grammar.parse(scanner, state) && scanner.eof())
 		{
 			while (!state.empty())
 			{
@@ -79,7 +79,7 @@ int main()
 		}
 		else
 		{
-			LOG(E, "Parsing error: '%s'", scn.position);
+			LOG(E, "Parsing error: '%s'", scanner.position);
 		}
 	}
 }

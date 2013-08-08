@@ -4,16 +4,15 @@
 
 #define LOG(tag, format, ...) fprintf(stderr, "%s/%s(%s:%d): " format "\n", #tag, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
 
-template<typename Scanner> pig::rule<Scanner> json_grammar()
+template<typename Scanner, typename Context> pig::rule<Scanner, Context> json_grammar()
 {
 	using namespace pig;
-	typedef typename Scanner::context_type context_type;
 	typedef typename Scanner::iterator_type iterator_type;
-	typedef rule<Scanner> rule_type;
+	typedef rule<Scanner, Context> rule_type;
 
-	auto act_prnt = [](context_type &state, const iterator_type &begin, const iterator_type &end)
+	auto act_p = [](const iterator_type &begin, const iterator_type &end, Context &ctx)
 	{
-		LOG(D, "prnt '%.*s'", int(end - begin), &*begin);
+		LOG(D, "%.*s", int(end - begin), &*begin);
 		/*int row = begin.number + 1;
 		int col = begin.pos - begin.line + 1;
 		LOG(D, "act_dbg %d:%d:'%.*s'", row, col, int(end.pos - begin.pos), begin.pos);*/
@@ -27,11 +26,11 @@ template<typename Scanner> pig::rule<Scanner> json_grammar()
 	auto simpleescape = '\\'_ch >> "\"\\/bfnrt"_set;
 	auto hexescape = "\\u"_lit >> +hexdigit;
 	auto stringchar = simpleescape / hexescape / (!'\\'_ch >> any());
-	auto string = '"'_ch >> *(!'"'_ch >> stringchar) % act_prnt >> '"'_ch >> ws;
+	auto string = '"'_ch >> *(!'"'_ch >> stringchar) % act_p >> '"'_ch >> ws;
 
 	auto fraction = (*digit >> '.'_ch >> +digit) / (+digit >> '.'_ch);
 	auto exponent = "eE"_set >> -sign >> +digit;
-	auto number = (-sign >> (fraction >> -exponent) / (+digit >> exponent) / +digit) % act_prnt >> ws;
+	auto number = (-sign >> (fraction >> -exponent) / (+digit >> exponent) / +digit) % act_p >> ws;
 
 	rule_type value;
 	auto colon = ':'_ch >> ws;
@@ -55,11 +54,11 @@ int main()
 		input.insert(input.end(), buffer, buffer + n);
 	}
 
-	typedef pig::scanner<int, std::vector<char>::iterator> scanner_type;
-	int state = 0;
-	scanner_type scanner(state, input.begin(), input.end());
-	auto grammar = json_grammar<scanner_type>();
-	if (grammar.parse(scanner) && scanner.eof())
+	typedef pig::scanner<decltype(input.begin())> scanner_type;
+	auto grammar = json_grammar<scanner_type, int>();
+	scanner_type scanner(input.begin(), input.end());
+	int state;
+	if (grammar.parse(scanner, state) && scanner.eof())
 	{
 	}
 	else
