@@ -70,6 +70,45 @@ namespace pig
 		}
 	};
 
+	template<typename Iterator> struct location
+	{
+		Iterator position;
+		int line = -1;
+	};
+
+	template<typename Context, typename Iterator, typename Location> struct scanner
+	{
+		Context state;
+		Iterator begin;
+		Iterator end;
+		Iterator position;
+
+		char operator*()
+		{
+			return *position;
+		}
+
+		void next()
+		{
+			++position;
+		}
+
+		Iterator save()
+		{
+			return position;
+		}
+
+		void restore(const Iterator &saved)
+		{
+			position = saved;
+		}
+
+		bool eof()
+		{
+			return position == end;
+		}
+	};
+
 	template<typename Context = context> struct rule
 	{
 		typedef rule peg_type;

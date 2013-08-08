@@ -18,7 +18,7 @@ pig::rule<> json_grammar()
     auto ws = *" \t\r\n"_set;
 	auto sign = "-+"_set;
 	auto digit = "[0-9]"_rng;
-    auto hexdigit = digit / "[a-f]"_rng / "[A-F"_rng;
+    auto hexdigit = digit / "[a-f]"_rng / "[A-F]"_rng;
 
     auto simpleescape = '\\'_ch >> "\"\\/bfnrt"_set;
     auto hexescape = "\\u"_lit >> +hexdigit;
