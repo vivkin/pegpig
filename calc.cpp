@@ -17,13 +17,6 @@ pig::rule<calc_context> calc_grammar()
 {
 	using namespace pig;
 
-	auto act_dbg = [](calc_context &ctx, const state &begin, const state &end)
-	{
-		int row = begin.number + 1;
-		int col = begin.pos - begin.line + 1;
-		LOG(D, "act_dbg %d:%d:'%.*s'", row, col, int(end.pos - begin.pos), begin.pos);
-	};
-
 	auto act_n = [](calc_context &ctx, const state &begin, const state &end)
 	{
 		ctx.stack.push(strtod(begin.pos, 0));

@@ -37,7 +37,7 @@ namespace pig
 	{
 		state cur;
 
-		context(const char *src)
+		context(const char *src = nullptr)
 		{
 			cur.pos = cur.line = src;
 			cur.number = 0;
