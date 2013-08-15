@@ -43,7 +43,7 @@ namespace pig
 
 	template<typename Scanner, typename Context> struct rule
 	{
-		typedef rule peg_type;
+		typedef rule<Scanner, Context> peg_type;
 
 		struct rule_def
 		{
@@ -322,7 +322,7 @@ namespace pig
 
 	inline constexpr one operator"" _ch(char c)
 	{
-		return one{c};
+		return {c};
 	}
 
 	inline constexpr range operator"" _rng(const char *cstr, size_t sz)
