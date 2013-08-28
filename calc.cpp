@@ -60,21 +60,21 @@ template<typename Scanner, typename Context> pig::rule<Scanner, Context> calc_gr
 
 int main()
 {
-	typedef pig::scanner<const char *> calc_scanner;
-	typedef std::stack<double> calc_context;
-	auto grammar = calc_grammar<calc_scanner, calc_context>();
+	typedef pig::scanner<const char *> scanner_type;
+	typedef std::stack<double> context_type;
+	auto grammar = calc_grammar<scanner_type, context_type>();
 	char buffer[1024];
 	while (fgets(buffer, sizeof(buffer), stdin))
 	{
-		calc_scanner scanner(buffer, buffer + strlen(buffer));
-		calc_context state;
+		scanner_type scanner(buffer, buffer + strlen(buffer));
+		context_type state;
 		if (grammar.parse(scanner, state) && scanner.eof())
 		{
 			while (!state.empty())
 			{
 				double v = state.top();
 				state.pop();
-				LOG(D, "%.2f", v);
+				LOG(I, "%.2f", v);
 			}
 		}
 		else

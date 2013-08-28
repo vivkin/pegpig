@@ -12,10 +12,7 @@ template<typename Scanner, typename Context> pig::rule<Scanner, Context> json_gr
 
 	auto act_p = [](const iterator_type &begin, const iterator_type &end, Context &ctx)
 	{
-		LOG(D, "%.*s", int(end - begin), &*begin);
-		/*int row = begin.number + 1;
-		int col = begin.pos - begin.line + 1;
-		LOG(D, "act_dbg %d:%d:'%.*s'", row, col, int(end.pos - begin.pos), begin.pos);*/
+		LOG(I, "%.*s", int(end - begin), &*begin);
 	};
 
 	auto ws = *" \t\r\n"_set;
@@ -64,8 +61,5 @@ int main()
 	else
 	{
 		LOG(D, "Error %s", &*scanner.position);
-		/*int row = ctx.cur.number + 1;
-		int col = ctx.cur.pos - ctx.cur.line + 1;
-		LOG(D, "Error %d:%d:'%s'", row, col, ctx.cur.pos);*/
 	}
 }
