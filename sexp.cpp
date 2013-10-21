@@ -12,37 +12,29 @@ template<typename Scanner, typename Context> pig::rule<Scanner, Context> lisp_gr
 
 	auto act_p = [](const iterator_type &begin, const iterator_type &end, Context &ctx)
 	{
-		LOG(I, "!!! %.*s", int(end - begin), &*begin);
+		LOG(I, "... %.*s", int(end - begin), &*begin);
 	};
 
 	auto ws = *" \t\r\n"_set;
 
+	auto string = '"'_ch > *(!'"'_ch > ('\\'_ch > '"'_ch) / any()) % act_p > '"'_ch > ws;
+
 	auto sign = "-+"_set;
-
 	auto digit = "[0-9]"_rng;
-	auto xdigit = digit / "[a-f]"_rng / "[A-F]"_rng;
-
 	auto bin = "0b"_lit > +"01"_set;
-	auto hex = "0x"_lit > +xdigit;
-	auto dec = "[1-9]"_rng > +digit;
+	auto hex = "0x"_lit > +(digit / "[a-f]"_rng / "[A-F]"_rng);
 	auto oct = '0'_ch > *"[0-7]"_rng;
-
-	auto integer = bin / hex / dec / oct;
-
-	auto simpleescape = '\\'_ch > "\"\\/bfnrt"_set;
-	auto hexescape = "\\u"_lit > +xdigit;
-	auto stringchar = simpleescape / hexescape / (!'\\'_ch > any());
-	auto string = '"'_ch > *(!'"'_ch > stringchar) % act_p > '"'_ch > ws;
-
+	auto dec = "[1-9]"_rng > *digit;
 	auto fraction = (*digit > '.'_ch > +digit) / (+digit > '.'_ch);
 	auto exponent = "eE"_set > -sign > +digit;
-	auto number = (-sign > (fraction > -exponent) / (+digit > exponent) / integer) % act_p > ws;
+	auto number = (-sign > (fraction > -exponent) / (+digit > exponent) / bin / hex / oct / dec) % act_p > ws;
 
-	auto identifier = *(!"();\"\t\n "_set > any()) > ws;
+	auto delim = "();\" \t\r\n"_set;
+	auto identifier = (!delim > any() > *(!delim > any())) % act_p > ws;
 
 	rule_type value;
-	auto list = '('_ch > ws > *value > ')'_ch > ws;
-	value = string / number / list > ws;
+	auto list = ('('_ch > ws > *value > ')'_ch) % act_p > ws;
+	value = string / number / identifier / list > ws;
 
 	return ws > *value > eof();
 }
