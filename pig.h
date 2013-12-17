@@ -11,34 +11,12 @@ namespace pig
 		iterator_type position;
 		iterator_type end;
 
-		scanner(iterator_type const &begin, iterator_type const &end): position(begin), end(end)
-		{
-		}
-
-		char operator*()
-		{
-			return *position;
-		}
-
-		void next()
-		{
-			++position;
-		}
-
-		iterator_type save()
-		{
-			return position;
-		}
-
-		void restore(iterator_type const &saved)
-		{
-			position = saved;
-		}
-
-		bool eof()
-		{
-			return position == end;
-		}
+		scanner(const iterator_type &begin, const iterator_type &end): position(begin), end(end) { }
+		char operator*() { return *position; }
+		void next() { ++position; }
+		iterator_type save() { return position; }
+		void restore(const iterator_type &saved) { position = saved; }
+		bool eof() { return position == end; }
 	};
 
 	template<typename Scanner, typename Context> struct rule
@@ -49,22 +27,15 @@ namespace pig
 		{
 			struct rule_base
 			{
-				virtual ~rule_base()
-				{
-				}
+				virtual ~rule_base() { }
 				virtual bool parse(Scanner &scn, Context &ctx) = 0;
 			};
 
-			template<typename Subject> struct rule_subject : rule_base
+			template<typename T> struct rule_subject : rule_base
 			{
-				Subject subject;
-				rule_subject(Subject const &subject): subject(subject)
-				{
-				}
-				virtual bool parse(Scanner &scn, Context &ctx)
-				{
-					return subject.parse(scn, ctx);
-				}
+				T subject;
+				rule_subject(const T &subject): subject(subject) { }
+				virtual bool parse(Scanner &scn, Context &ctx) { return subject.parse(scn, ctx); }
 			};
 
 			std::unique_ptr<rule_base> subject;
@@ -73,33 +44,18 @@ namespace pig
 		std::shared_ptr<rule_def> def = std::make_shared<rule_def>();
 
 		rule() = default;
-		rule(rule const &) = default;
-		rule &operator=(rule const &) = default;
+		rule(const rule &) = default;
+		rule &operator=(const rule &) = default;
 
-		template<typename Subject> rule(Subject const &subject)
-		{
-			def->subject.reset(new rule_def::rule_subject<Subject>(subject));
-		}
-
-		template<typename Subject> rule &operator=(Subject const &subject)
-		{
-			def->subject.reset(new rule_def::rule_subject<Subject>(subject));
-			return *this;
-		}
-
-		bool parse(Scanner &scn, Context &ctx)
-		{
-			return def->subject && def->subject->parse(scn, ctx);
-		}
+		template<typename T> rule(const T &subject) { def->subject.reset(new rule_def::rule_subject<T>(subject)); }
+		template<typename T> rule &operator=(const T &subject) { def->subject.reset(new rule_def::rule_subject<T>(subject)); return *this; }
+		bool parse(Scanner &scn, Context &ctx) { return def->subject && def->subject->parse(scn, ctx); }
 	};
 
 	struct eof
 	{
 		typedef eof peg_type;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
-		{
-			return scn.eof();
-		}
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) { return scn.eof(); }
 	};
 
 	struct any
@@ -188,10 +144,10 @@ namespace pig
 		}
 	};
 
-	template<typename Subject> struct greedy_option
+	template<typename T> struct greedy_option
 	{
-		typedef greedy_option<Subject> peg_type;
-		Subject subject;
+		typedef greedy_option<T> peg_type;
+		T subject;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			auto save = scn.save();
@@ -203,10 +159,10 @@ namespace pig
 		}
 	};
 
-	template<typename Subject> struct kleene_star
+	template<typename T> struct kleene_star
 	{
-		typedef kleene_star<Subject> peg_type;
-		Subject subject;
+		typedef kleene_star<T> peg_type;
+		T subject;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			auto save = scn.save();
@@ -225,10 +181,10 @@ namespace pig
 		}
 	};
 
-	template<typename Subject> struct kleene_plus
+	template<typename T> struct kleene_plus
 	{
-		typedef kleene_plus<Subject> peg_type;
-		Subject subject;
+		typedef kleene_plus<T> peg_type;
+		T subject;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			if (!subject.parse(scn, ctx))
@@ -245,10 +201,10 @@ namespace pig
 		}
 	};
 
-	template<typename Subject> struct and_predicate
+	template<typename T> struct and_predicate
 	{
-		typedef and_predicate<Subject> peg_type;
-		Subject subject;
+		typedef and_predicate<T> peg_type;
+		T subject;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			auto save = scn.save();
@@ -258,10 +214,10 @@ namespace pig
 		}
 	};
 
-	template<typename Subject> struct not_predicate
+	template<typename T> struct not_predicate
 	{
-		typedef not_predicate<Subject> peg_type;
-		Subject subject;
+		typedef not_predicate<T> peg_type;
+		T subject;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			auto save = scn.save();
@@ -271,11 +227,11 @@ namespace pig
 		}
 	};
 
-	template<typename Left, typename Right> struct sequence
+	template<typename T, typename Y> struct sequence
 	{
-		typedef sequence<Left, Right> peg_type;
-		Left left;
-		Right right;
+		typedef sequence<T, Y> peg_type;
+		T left;
+		Y right;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			if (!left.parse(scn, ctx))
@@ -286,11 +242,11 @@ namespace pig
 		}
 	};
 
-	template<typename Left, typename Right> struct alternative
+	template<typename T, typename Y> struct alternative
 	{
-		typedef alternative<Left, Right> peg_type;
-		Left left;
-		Right right;
+		typedef alternative<T, Y> peg_type;
+		T left;
+		Y right;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			auto save = scn.save();
@@ -303,10 +259,10 @@ namespace pig
 		}
 	};
 
-	template<typename Subject, typename Action> struct action
+	template<typename T, typename Action> struct action
 	{
-		typedef action<Subject, Action> peg_type;
-		Subject subject;
+		typedef action<T, Action> peg_type;
+		T subject;
 		Action action;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
@@ -320,63 +276,16 @@ namespace pig
 		}
 	};
 
-	inline constexpr one operator"" _ch(char c)
-	{
-		return {c};
-	}
-
-	inline constexpr range operator"" _rng(const char *cstr, size_t sz)
-	{
-		return {cstr[1], cstr[3]};
-	}
-
-	inline constexpr set operator"" _set(const char *cstr, size_t sz)
-	{
-		return {cstr};
-	}
-
-	inline constexpr literal operator"" _lit(const char *cstr, size_t sz)
-	{
-		return {cstr};
-	}
-
-	template<typename Subject> greedy_option<typename Subject::peg_type> operator-(Subject const &subject)
-	{
-		return {subject};
-	}
-
-	template<typename Subject> kleene_star<typename Subject::peg_type> operator*(Subject const &subject)
-	{
-		return {subject};
-	}
-
-	template<typename Subject> kleene_plus<typename Subject::peg_type> operator+(Subject const &subject)
-	{
-		return {subject};
-	}
-
-	template<typename Subject> and_predicate<typename Subject::peg_type> operator&(Subject const &subject)
-	{
-		return {subject};
-	}
-
-	template<typename Subject> not_predicate<typename Subject::peg_type> operator!(Subject const &subject)
-	{
-		return {subject};
-	}
-
-	template<typename Left, typename Right> sequence<typename Left::peg_type, typename Right::peg_type> operator>(Left const &left, Right const &right)
-	{
-		return {left, right};
-	}
-
-	template<typename Left, typename Right> alternative<typename Left::peg_type, typename Right::peg_type> operator/(Left const &left, Right const &right)
-	{
-		return {left, right};
-	}
-
-	template<typename Left, typename Right> action<typename Left::peg_type, Right> operator%(Left const &left, Right const &right)
-	{
-		return {left, right};
-	}
+	constexpr one operator"" _ch(char c) { return {c}; }
+	constexpr range operator"" _rng(const char *cstr, size_t sz) { return {cstr[1], cstr[3]}; }
+	constexpr set operator"" _set(const char *cstr, size_t sz) { return {cstr}; }
+	constexpr literal operator"" _lit(const char *cstr, size_t sz) { return {cstr}; }
+	template<typename T> constexpr greedy_option<typename T::peg_type> operator-(const T &subject) { return {subject}; }
+	template<typename T> constexpr kleene_star<typename T::peg_type> operator*(const T &subject) { return {subject}; }
+	template<typename T> constexpr kleene_plus<typename T::peg_type> operator+(const T &subject) { return {subject}; }
+	template<typename T> constexpr and_predicate<typename T::peg_type> operator&(const T &subject) { return {subject}; }
+	template<typename T> constexpr not_predicate<typename T::peg_type> operator!(const T &subject) { return {subject}; }
+	template<typename T, typename Y> constexpr sequence<typename T::peg_type, typename Y::peg_type> operator>(const T &left, const Y &right) { return {left, right}; }
+	template<typename T, typename Y> constexpr alternative<typename T::peg_type, typename Y::peg_type> operator/(const T &left, const Y &right) { return {left, right}; }
+	template<typename T, typename Y> constexpr action<typename T::peg_type, Y> operator%(const T &left, const Y &right) { return {left, right}; }
 }
