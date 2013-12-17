@@ -21,7 +21,7 @@ namespace pig
 
 	template<typename Scanner, typename Context> struct rule
 	{
-		typedef rule<Scanner, Context> peg_type;
+		typedef rule<Scanner, Context> type;
 
 		struct rule_def
 		{
@@ -54,13 +54,13 @@ namespace pig
 
 	struct eof
 	{
-		typedef eof peg_type;
+		typedef eof type;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) { return scn.eof(); }
 	};
 
 	struct any
 	{
-		typedef any peg_type;
+		typedef any type;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			if (!scn.eof())
@@ -74,7 +74,7 @@ namespace pig
 
 	struct one
 	{
-		typedef one peg_type;
+		typedef one type;
 		char c;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
@@ -89,7 +89,7 @@ namespace pig
 
 	struct range
 	{
-		typedef range peg_type;
+		typedef range type;
 		char min;
 		char max;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
@@ -105,7 +105,7 @@ namespace pig
 
 	struct set
 	{
-		typedef set peg_type;
+		typedef set type;
 		const char *cstr;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
@@ -127,7 +127,7 @@ namespace pig
 
 	struct literal
 	{
-		typedef literal peg_type;
+		typedef literal type;
 		const char *cstr;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
@@ -146,7 +146,7 @@ namespace pig
 
 	template<typename T> struct greedy_option
 	{
-		typedef greedy_option<T> peg_type;
+		typedef greedy_option<T> type;
 		T subject;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
@@ -161,7 +161,7 @@ namespace pig
 
 	template<typename T> struct kleene_star
 	{
-		typedef kleene_star<T> peg_type;
+		typedef kleene_star<T> type;
 		T subject;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
@@ -183,7 +183,7 @@ namespace pig
 
 	template<typename T> struct kleene_plus
 	{
-		typedef kleene_plus<T> peg_type;
+		typedef kleene_plus<T> type;
 		T subject;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
@@ -203,7 +203,7 @@ namespace pig
 
 	template<typename T> struct and_predicate
 	{
-		typedef and_predicate<T> peg_type;
+		typedef and_predicate<T> type;
 		T subject;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
@@ -216,7 +216,7 @@ namespace pig
 
 	template<typename T> struct not_predicate
 	{
-		typedef not_predicate<T> peg_type;
+		typedef not_predicate<T> type;
 		T subject;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
@@ -229,7 +229,7 @@ namespace pig
 
 	template<typename T, typename Y> struct sequence
 	{
-		typedef sequence<T, Y> peg_type;
+		typedef sequence<T, Y> type;
 		T left;
 		Y right;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
@@ -244,7 +244,7 @@ namespace pig
 
 	template<typename T, typename Y> struct alternative
 	{
-		typedef alternative<T, Y> peg_type;
+		typedef alternative<T, Y> type;
 		T left;
 		Y right;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
@@ -259,11 +259,11 @@ namespace pig
 		}
 	};
 
-	template<typename T, typename Action> struct action
+	template<typename T, typename Y> struct action
 	{
-		typedef action<T, Action> peg_type;
+		typedef action<T, Y> type;
 		T subject;
-		Action action;
+		Y action;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			auto save = scn.save();
@@ -280,12 +280,12 @@ namespace pig
 	constexpr range operator"" _rng(const char *cstr, size_t sz) { return {cstr[1], cstr[3]}; }
 	constexpr set operator"" _set(const char *cstr, size_t sz) { return {cstr}; }
 	constexpr literal operator"" _lit(const char *cstr, size_t sz) { return {cstr}; }
-	template<typename T> constexpr greedy_option<typename T::peg_type> operator-(const T &subject) { return {subject}; }
-	template<typename T> constexpr kleene_star<typename T::peg_type> operator*(const T &subject) { return {subject}; }
-	template<typename T> constexpr kleene_plus<typename T::peg_type> operator+(const T &subject) { return {subject}; }
-	template<typename T> constexpr and_predicate<typename T::peg_type> operator&(const T &subject) { return {subject}; }
-	template<typename T> constexpr not_predicate<typename T::peg_type> operator!(const T &subject) { return {subject}; }
-	template<typename T, typename Y> constexpr sequence<typename T::peg_type, typename Y::peg_type> operator>(const T &left, const Y &right) { return {left, right}; }
-	template<typename T, typename Y> constexpr alternative<typename T::peg_type, typename Y::peg_type> operator/(const T &left, const Y &right) { return {left, right}; }
-	template<typename T, typename Y> constexpr action<typename T::peg_type, Y> operator%(const T &left, const Y &right) { return {left, right}; }
+	template<typename T> constexpr greedy_option<typename T::type> operator-(const T &subject) { return {subject}; }
+	template<typename T> constexpr kleene_star<typename T::type> operator*(const T &subject) { return {subject}; }
+	template<typename T> constexpr kleene_plus<typename T::type> operator+(const T &subject) { return {subject}; }
+	template<typename T> constexpr and_predicate<typename T::type> operator&(const T &subject) { return {subject}; }
+	template<typename T> constexpr not_predicate<typename T::type> operator!(const T &subject) { return {subject}; }
+	template<typename T, typename Y> constexpr sequence<typename T::type, typename Y::type> operator>(const T &left, const Y &right) { return {left, right}; }
+	template<typename T, typename Y> constexpr alternative<typename T::type, typename Y::type> operator/(const T &left, const Y &right) { return {left, right}; }
+	template<typename T, typename Y> constexpr action<typename T::type, Y> operator%(const T &left, const Y &right) { return {left, right}; }
 }
