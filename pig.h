@@ -151,10 +151,7 @@ namespace pig
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			auto save = scn.save();
-			if (!subject.parse(scn, ctx))
-			{
-				scn.restore(save);
-			}
+			if (!subject.parse(scn, ctx)) scn.restore(save);
 			return true;
 		}
 	};
@@ -172,10 +169,7 @@ namespace pig
 				return true;
 			}
 			save = scn.save();
-			while (subject.parse(scn, ctx))
-			{
-				save = scn.save();
-			}
+			while (subject.parse(scn, ctx)) save = scn.save();
 			scn.restore(save);
 			return true;
 		}
@@ -187,15 +181,9 @@ namespace pig
 		T subject;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
-			if (!subject.parse(scn, ctx))
-			{
-				return false;
-			}
+			if (!subject.parse(scn, ctx)) return false;
 			auto save = scn.save();
-			while (subject.parse(scn, ctx))
-			{
-				save = scn.save();
-			}
+			while (subject.parse(scn, ctx)) save = scn.save();
 			scn.restore(save);
 			return true;
 		}
@@ -234,10 +222,7 @@ namespace pig
 		Y right;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
-			if (!left.parse(scn, ctx))
-			{
-				return false;
-			}
+			if (!left.parse(scn, ctx)) return false;
 			return right.parse(scn, ctx);
 		}
 	};
@@ -250,10 +235,7 @@ namespace pig
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			auto save = scn.save();
-			if (left.parse(scn, ctx))
-			{
-				return true;
-			}
+			if (left.parse(scn, ctx)) return true;
 			scn.restore(save);
 			return right.parse(scn, ctx);
 		}
@@ -267,10 +249,7 @@ namespace pig
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			auto save = scn.save();
-			if (!subject.parse(scn, ctx))
-			{
-				return false;
-			}
+			if (!subject.parse(scn, ctx)) return false;
 			action(save, scn.save(), ctx);
 			return true;
 		}
