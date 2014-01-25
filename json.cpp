@@ -15,29 +15,29 @@ template<typename Scanner, typename Context> pig::rule<Scanner, Context> json_gr
 		LOG(I, "%.*s", int(end - begin), &*begin);
 	};
 
-	auto ws = *" \t\r\n"_set;
-	auto sign = "-+"_set;
-	auto digit = "[0-9]"_rng;
-	auto hexdigit = digit / "[a-f]"_rng / "[A-F]"_rng;
+	auto ws = *set{" \t\r\n"};
+	auto sign = set{"-+"};
+	auto digit = ch("0-9");
+	auto hexdigit = digit / ch("a-f") / ch("A-F");
 
-	auto simpleescape = '\\'_ch > "\"\\/bfnrt"_set;
-	auto hexescape = "\\u"_lit > +hexdigit;
-	auto stringchar = simpleescape / hexescape / (!'\\'_ch > any());
-	auto string = '"'_ch > *(!'"'_ch > stringchar) % act_p > '"'_ch > ws;
+	auto simpleescape = '\\' > set{"\"\\/bfnrt"};
+	auto hexescape = "\\u" > +hexdigit;
+	auto stringchar = simpleescape / hexescape / (!ch('\\') > any);
+	auto string = '"' > *(!ch('"') > stringchar) % act_p > '"' > ws;
 
-	auto fraction = (*digit > '.'_ch > +digit) / (+digit > '.'_ch);
-	auto exponent = "eE"_set > -sign > +digit;
+	auto fraction = (*digit > '.' > +digit) / (+digit > '.');
+	auto exponent = set{"eE"} > -sign > +digit;
 	auto number = (-sign > (fraction > -exponent) / (+digit > exponent) / +digit) % act_p > ws;
 
 	rule_type value;
-	auto colon = ':'_ch > ws;
+	auto colon = ':' > ws;
 	auto pair = string > colon > value;
-	auto comma = ','_ch > ws;
-	auto object = '{'_ch > ws > -(pair > *(comma > pair)) > '}'_ch > ws;
-	auto array = '['_ch > ws > -(value > *(comma > value)) > ']'_ch > ws;
-	value = string / number / object / array / "true"_lit / "false"_lit / "null"_lit > ws;
+	auto comma = ',' > ws;
+	auto object = '{' > ws > -(pair > *(comma > pair)) > '}' > ws;
+	auto array = '[' > ws > -(value > *(comma > value)) > ']' > ws;
+	value = string / number / object / array / "true" / "false" / "null" > ws;
 
-	return ws > value > eof();
+	return ws > value > eof;
 }
 
 int main()
