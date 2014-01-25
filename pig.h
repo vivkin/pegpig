@@ -274,7 +274,11 @@ namespace pig
 	constexpr auto eof = eof_parser();
 	constexpr auto any = any_parser();
 	constexpr char_parser ch(char x) { return {x}; }
-	constexpr char_range ch(const char x[3]) { return {x[0], x[2]}; }
+	struct {
+		constexpr char_range operator[](const char (&x)[4]) { return {x[0], x[2]}; }
+		constexpr auto operator[](const char (&x)[7]) -> decltype(char_range() / char_range()) { return char_range{x[0], x[2]} / char_range{x[3], x[5]}; }
+		constexpr auto operator[](const char (&x)[10]) -> decltype(char_range() / char_range() / char_range()) { return char_range{x[0], x[2]} / char_range{x[3], x[5]} / char_range{x[6], x[8]}; }
+	} rng;
 	typedef char_set set;
 	typedef literal lit;
 }

@@ -49,7 +49,7 @@ template<typename Scanner, typename Context> pig::rule<Scanner, Context> calc_gr
 	auto sub = '-' > space;
 	auto mul = '*' > space;
 	auto div = '/' > space;
-	auto number = (-set{"-+"} > +ch("0-9")) % act_n > space;
+	auto number = (-set{"-+"} > +rng["0-9"]) % act_n > space;
 
 	rule_type sum;
 	auto value = number / (left_brace > sum > right_brace);

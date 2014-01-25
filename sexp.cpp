@@ -20,11 +20,11 @@ template<typename Scanner, typename Context> pig::rule<Scanner, Context> lisp_gr
 	auto string = '"' > *(!ch('"') > (ch('\\') > '"') / any) % act_p > '"' > ws;
 
 	auto sign = set{"-+"};
-	auto digit = ch("0-9");
+	auto digit = rng["0-9"];
 	auto bin = "0b" > +set{"01"};
-	auto hex = "0x" > +(digit / ch("a-f") / ch("A-F"));
-	auto oct = '0' > *ch("0-7");
-	auto dec = ch("1-9") > *digit;
+	auto hex = "0x" > +(digit / rng["a-fA-F"]);
+	auto oct = '0' > *rng["0-7"];
+	auto dec = rng["1-9"] > *digit;
 	auto fraction = (*digit > '.' > +digit) / (+digit > '.');
 	auto exponent = set{"eE"} > -sign > +digit;
 	auto number = (-sign > (fraction > -exponent) / (+digit > exponent) / bin / hex / oct / dec) % act_p > ws;

@@ -17,8 +17,8 @@ template<typename Scanner, typename Context> pig::rule<Scanner, Context> json_gr
 
 	auto ws = *set{" \t\r\n"};
 	auto sign = set{"-+"};
-	auto digit = ch("0-9");
-	auto hexdigit = digit / ch("a-f") / ch("A-F");
+	auto digit = rng["0-9"];
+	auto hexdigit = rng["0-9a-fA-F"];
 
 	auto simpleescape = '\\' > set{"\"\\/bfnrt"};
 	auto hexescape = "\\u" > +hexdigit;
