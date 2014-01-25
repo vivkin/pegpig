@@ -40,15 +40,15 @@ template<typename Scanner, typename Context> pig::rule<Scanner, Context> calc_gr
 		LOG(D, "%.2f %.1s %.2f = %.2f (%zd)", l, begin, r, ctx.top(), ctx.size());
 	};
 
-	auto eol = "\r\n"_lit / "\n\r"_set / eof();
-	auto space = *" \t"_set;
-	auto left_brace = '('_ch > space;
-	auto right_brace = ')'_ch > space;
-	auto add = '+'_ch > space;
-	auto sub = '-'_ch > space;
-	auto mul = '*'_ch > space;
-	auto div = '/'_ch > space;
-	auto number = (-"-+"_set > +"[0-9]"_rng) % act_n > space;
+	auto eol = "\r\n" / set{"\n\r"} / eof;
+	auto space = *set{" \t"};
+	auto left_brace = '(' > space;
+	auto right_brace = ')' > space;
+	auto add = '+' > space;
+	auto sub = '-' > space;
+	auto mul = '*' > space;
+	auto div = '/' > space;
+	auto number = (-set{"-+"} > +ch("0-9")) % act_n > space;
 
 	rule_type sum;
 	auto value = number / (left_brace > sum > right_brace);
