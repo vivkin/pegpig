@@ -7,12 +7,12 @@ Operators
 ---------
 Expression|C++|Class|Description
 ---|---|---|---
- ||eof|End of input
-`.`||any|Any character
-`'{'`|`'{'_ch`|one|Literal character
-`[0-9]`|`"[0-9]"_rng`|range|Character class
-`[eE]`|`"eE"_set`|set|Character class
-`"unsigned"`|`"unsigned"_lit`|literal|Literal string
+ |`eof`|eof_parser|End of input
+`.`|`any`|any_parser|Any character
+`'{'`|`'{'` or `ch('{')`|char_parser|Literal character
+`[0-9]`|`ch("0-9")`|char_range|Character class
+`[eE]`|`set{"eE"}`|char_set|Character class
+`"int"`|`"int"` or `lit{"int"}`|literal|Literal string
 `(e)`|`(e)`||Grouping
 `e?`|`-e`|greedy_option|Optional
 `e*`|`*e`|kleen_star|Zero-or-more
