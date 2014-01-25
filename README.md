@@ -10,7 +10,7 @@ Expression|C++|Class|Description
  |`eof`|eof_parser|End of input
 `.`|`any`|any_parser|Any character
 `'{'`|`'{'` or `ch('{')`|char_parser|Literal character
-`[0-9]`|`ch("0-9")`|char_range|Character class
+`[0-9]`|`rng["0-9"]`|char_range|Character class
 `[eE]`|`set{"eE"}`|char_set|Character class
 `"int"`|`"int"` or `lit{"int"}`|literal|Literal string
 `(e)`|`(e)`||Grouping
