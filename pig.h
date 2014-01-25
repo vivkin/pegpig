@@ -52,15 +52,15 @@ namespace pig
 		bool parse(Scanner &scn, Context &ctx) { return def->subject && def->subject->parse(scn, ctx); }
 	};
 
-	struct eof
+	struct eof_parser
 	{
-		typedef eof type;
+		typedef eof_parser type;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) { return scn.eof(); }
 	};
 
-	struct any
+	struct any_parser
 	{
-		typedef any type;
+		typedef any_parser type;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
 			if (!scn.eof())
@@ -72,13 +72,13 @@ namespace pig
 		}
 	};
 
-	struct one
+	struct char_parser
 	{
-		typedef one type;
-		char c;
+		typedef char_parser type;
+		char x;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
-			if (!scn.eof() && *scn == c)
+			if (!scn.eof() && *scn == x)
 			{
 				scn.next();
 				return true;
@@ -87,14 +87,13 @@ namespace pig
 		}
 	};
 
-	struct range
+	struct char_range
 	{
-		typedef range type;
-		char min;
-		char max;
+		typedef char_range type;
+		char x, y;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
-			if (!scn.eof() && (*scn >= min && *scn <= max))
+			if (!scn.eof() && (*scn >= x && *scn <= y))
 			{
 				scn.next();
 				return true;
@@ -103,9 +102,9 @@ namespace pig
 		}
 	};
 
-	struct set
+	struct char_set
 	{
-		typedef set type;
+		typedef char_set type;
 		const char *cstr;
 		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
 		{
@@ -255,24 +254,27 @@ namespace pig
 		}
 	};
 
-	constexpr one operator"" _ch(char c) { return {c}; }
-	constexpr range operator"" _rng(const char *cstr, size_t sz) { return {cstr[1], cstr[3]}; }
-	constexpr set operator"" _set(const char *cstr, size_t sz) { return {cstr}; }
-	constexpr literal operator"" _lit(const char *cstr, size_t sz) { return {cstr}; }
-	template<typename T> constexpr greedy_option<typename T::type> operator-(const T &subject) { return {subject}; }
-	template<typename T> constexpr kleene_star<typename T::type> operator*(const T &subject) { return {subject}; }
-	template<typename T> constexpr kleene_plus<typename T::type> operator+(const T &subject) { return {subject}; }
-	template<typename T> constexpr and_predicate<typename T::type> operator&(const T &subject) { return {subject}; }
-	template<typename T> constexpr not_predicate<typename T::type> operator!(const T &subject) { return {subject}; }
-	template<typename T, typename Y> constexpr sequence<typename T::type, typename Y::type> operator>(const T &left, const Y &right) { return {left, right}; }
-	template<typename T> constexpr sequence<typename T::type, one> operator>(const T &left, char right) { return {left, one{right}}; }
-	template<typename T> constexpr sequence<one, typename T::type> operator>(char left, const T &right) { return {one{left}, right}; }
-	template<typename T> constexpr sequence<typename T::type, literal> operator>(const T &left, const char *right) { return {left, literal{right}}; }
-	template<typename T> constexpr sequence<literal, typename T::type> operator>(const char *left, const T &right) { return {literal{left}, right}; }
-	template<typename T, typename Y> constexpr alternative<typename T::type, typename Y::type> operator/(const T &left, const Y &right) { return {left, right}; }
-	template<typename T> constexpr alternative<typename T::type, one> operator/(const T &left, char right) { return {left, one{right}}; }
-	template<typename T> constexpr alternative<one, typename T::type> operator/(char left, const T &right) { return {one{left}, right}; }
-	template<typename T> constexpr alternative<typename T::type, literal> operator/(const T &left, const char *right) { return {left, literal{right}}; }
-	template<typename T> constexpr alternative<literal, typename T::type> operator/(const char *left, const T &right) { return {literal{left}, right}; }
-	template<typename T, typename Y> constexpr action<typename T::type, Y> operator%(const T &left, const Y &right) { return {left, right}; }
+	template<typename T> constexpr greedy_option<typename T::type> operator-(const T &x) { return {x}; }
+	template<typename T> constexpr kleene_star<typename T::type> operator*(const T &x) { return {x}; }
+	template<typename T> constexpr kleene_plus<typename T::type> operator+(const T &x) { return {x}; }
+	template<typename T> constexpr and_predicate<typename T::type> operator&(const T &x) { return {x}; }
+	template<typename T> constexpr not_predicate<typename T::type> operator!(const T &x) { return {x}; }
+	template<typename T, typename Y> constexpr sequence<typename T::type, typename Y::type> operator>(const T &x, const Y &y) { return {x, y}; }
+	template<typename T> constexpr sequence<typename T::type, char_parser> operator>(const T &x, char y) { return {x, char_parser{y}}; }
+	template<typename T> constexpr sequence<char_parser, typename T::type> operator>(char x, const T &y) { return {char_parser{x}, y}; }
+	template<typename T> constexpr sequence<typename T::type, literal> operator>(const T &x, const char *y) { return {x, literal{y}}; }
+	template<typename T> constexpr sequence<literal, typename T::type> operator>(const char *x, const T &y) { return {literal{x}, y}; }
+	template<typename T, typename Y> constexpr alternative<typename T::type, typename Y::type> operator/(const T &x, const Y &y) { return {x, y}; }
+	template<typename T> constexpr alternative<typename T::type, char_parser> operator/(const T &x, char y) { return {x, char_parser{y}}; }
+	template<typename T> constexpr alternative<char_parser, typename T::type> operator/(char x, const T &y) { return {char_parser{x}, y}; }
+	template<typename T> constexpr alternative<typename T::type, literal> operator/(const T &x, const char *y) { return {x, literal{y}}; }
+	template<typename T> constexpr alternative<literal, typename T::type> operator/(const char *x, const T &y) { return {literal{x}, y}; }
+	template<typename T, typename Y> constexpr action<typename T::type, Y> operator%(const T &x, const Y &y) { return {x, y}; }
+
+	constexpr auto eof = eof_parser();
+	constexpr auto any = any_parser();
+	constexpr char_parser ch(char x) { return {x}; }
+	constexpr char_range ch(const char x[3]) { return {x[0], x[2]}; }
+	typedef char_set set;
+	typedef literal lit;
 }
