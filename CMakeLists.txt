@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(pegpig)
-set(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++ -Wall -fno-rtti -fno-exceptions -ferror-limit=3 -msse4 -O2")
+set(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++ -Wall -fno-rtti -fno-exceptions -ferror-limit=3 -Wno-unused-variable -msse4 -O2")
 add_executable(calc calc.cpp)
 add_executable(json json.cpp)
 add_executable(sexp sexp.cpp)
+add_executable(pp pp.cpp)

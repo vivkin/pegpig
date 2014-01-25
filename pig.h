@@ -265,6 +265,14 @@ namespace pig
 	template<typename T> constexpr and_predicate<typename T::type> operator&(const T &subject) { return {subject}; }
 	template<typename T> constexpr not_predicate<typename T::type> operator!(const T &subject) { return {subject}; }
 	template<typename T, typename Y> constexpr sequence<typename T::type, typename Y::type> operator>(const T &left, const Y &right) { return {left, right}; }
+	template<typename T> constexpr sequence<typename T::type, one> operator>(const T &left, char right) { return {left, one{right}}; }
+	template<typename T> constexpr sequence<one, typename T::type> operator>(char left, const T &right) { return {one{left}, right}; }
+	template<typename T> constexpr sequence<typename T::type, literal> operator>(const T &left, const char *right) { return {left, literal{right}}; }
+	template<typename T> constexpr sequence<literal, typename T::type> operator>(const char *left, const T &right) { return {literal{left}, right}; }
 	template<typename T, typename Y> constexpr alternative<typename T::type, typename Y::type> operator/(const T &left, const Y &right) { return {left, right}; }
+	template<typename T> constexpr alternative<typename T::type, one> operator/(const T &left, char right) { return {left, one{right}}; }
+	template<typename T> constexpr alternative<one, typename T::type> operator/(char left, const T &right) { return {one{left}, right}; }
+	template<typename T> constexpr alternative<typename T::type, literal> operator/(const T &left, const char *right) { return {left, literal{right}}; }
+	template<typename T> constexpr alternative<literal, typename T::type> operator/(const char *left, const T &right) { return {literal{left}, right}; }
 	template<typename T, typename Y> constexpr action<typename T::type, Y> operator%(const T &left, const Y &right) { return {left, right}; }
 }
