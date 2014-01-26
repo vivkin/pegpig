@@ -285,6 +285,7 @@ namespace pig
 	template<typename T> constexpr alternative<char_parser, typename T::type> operator/(char x, T y) { return {char_parser{x}, y}; }
 	template<typename T> constexpr alternative<typename T::type, literal> operator/(T x, const char *y) { return {x, literal{y}}; }
 	template<typename T> constexpr alternative<literal, typename T::type> operator/(const char *x, T y) { return {literal{x}, y}; }
+	template<typename T, typename Y> constexpr action<typename T::type, Y> operator>=(T x, Y y) { return {x, y}; }
 	template<typename T, typename Y> constexpr action<typename T::type, Y> operator%(T x, Y y) { return {x, y}; }
 
 	constexpr char_parser ch(char x) { return {x}; }

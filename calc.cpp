@@ -46,12 +46,12 @@ template<typename Scanner, typename Context> pig::rule<Scanner, Context> calc_gr
 	auto sub = '-' > spacing;
 	auto mul = '*' > spacing;
 	auto div = '/' > spacing;
-	auto number = (-set{"-+"} > +digit) % act_n > spacing;
+	auto number = -set{"-+"} > +digit >= act_n > spacing;
 
 	rule_type sum;
 	auto value = number / (left_brace > sum > right_brace);
-	auto product = value > *(((mul > value) % act_op) / ((div > value) % act_op));
-	sum = product > *(((add > product) % act_op) / ((sub > product) % act_op));
+	auto product = value > *((mul > value >= act_op) / (div > value >= act_op));
+	sum = product > *((add > product >= act_op) / (sub > product >= act_op));
 
 	return sum > eol;
 }
