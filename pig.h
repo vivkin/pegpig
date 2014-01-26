@@ -26,14 +26,14 @@ namespace pig
 			struct rule_base
 			{
 				virtual ~rule_base() { }
-				virtual bool parse(Scanner &scn, Context &ctx) = 0;
+				virtual bool parse(Scanner &scn, Context &ctx) const = 0;
 			};
 
 			template<typename T> struct rule_subject : rule_base
 			{
 				T subject;
 				rule_subject(const T &subject): subject(subject) { }
-				virtual bool parse(Scanner &scn, Context &ctx) { return subject.parse(scn, ctx); }
+				virtual bool parse(Scanner &scn, Context &ctx) const { return subject.parse(scn, ctx); }
 			};
 
 			rule_base *subject;
@@ -65,19 +65,19 @@ namespace pig
 		void addref() { ++def->refcount; }
 		void release() { if (--def->refcount == 0) { delete def->subject; delete def; } }
 
-		bool parse(Scanner &scn, Context &ctx) { return def->subject && def->subject->parse(scn, ctx); }
+		bool parse(Scanner &scn, Context &ctx) const { return def->subject && def->subject->parse(scn, ctx); }
 	};
 
 	struct eof_parser
 	{
 		typedef eof_parser type;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) { return scn.eof(); }
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const { return scn.eof(); }
 	};
 
 	struct any_parser
 	{
 		typedef any_parser type;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
 		{
 			if (!scn.eof())
 			{
@@ -92,7 +92,7 @@ namespace pig
 	{
 		typedef char_parser type;
 		char x;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
 		{
 			if (!scn.eof() && *scn == x)
 			{
@@ -107,7 +107,7 @@ namespace pig
 	{
 		typedef char_range type;
 		char x, y;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
 		{
 			if (!scn.eof() && (*scn >= x && *scn <= y))
 			{
@@ -122,7 +122,7 @@ namespace pig
 	{
 		typedef char_set type;
 		const char *cstr;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
 		{
 			if (!scn.eof())
 			{
@@ -144,7 +144,7 @@ namespace pig
 	{
 		typedef literal type;
 		const char *cstr;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
 		{
 			auto save = scn.save();
 			for (const char *str = cstr; *str && !scn.eof(); ++str, scn.next())
@@ -163,7 +163,7 @@ namespace pig
 	{
 		typedef greedy_option<T> type;
 		T subject;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
 		{
 			auto save = scn.save();
 			if (!subject.parse(scn, ctx)) scn.restore(save);
@@ -175,7 +175,7 @@ namespace pig
 	{
 		typedef kleene_star<T> type;
 		T subject;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
 		{
 			auto save = scn.save();
 			if (!subject.parse(scn, ctx))
@@ -194,7 +194,7 @@ namespace pig
 	{
 		typedef kleene_plus<T> type;
 		T subject;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
 		{
 			if (!subject.parse(scn, ctx)) return false;
 			auto save = scn.save();
@@ -208,7 +208,7 @@ namespace pig
 	{
 		typedef and_predicate<T> type;
 		T subject;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
 		{
 			auto save = scn.save();
 			bool result = subject.parse(scn, ctx);
@@ -221,7 +221,7 @@ namespace pig
 	{
 		typedef not_predicate<T> type;
 		T subject;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
 		{
 			auto save = scn.save();
 			bool result = !subject.parse(scn, ctx);
@@ -235,7 +235,7 @@ namespace pig
 		typedef sequence<T, Y> type;
 		T left;
 		Y right;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
 		{
 			if (!left.parse(scn, ctx)) return false;
 			return right.parse(scn, ctx);
@@ -247,7 +247,7 @@ namespace pig
 		typedef alternative<T, Y> type;
 		T left;
 		Y right;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
 		{
 			auto save = scn.save();
 			if (left.parse(scn, ctx)) return true;
@@ -261,7 +261,7 @@ namespace pig
 		typedef action<T, Y> type;
 		T subject;
 		Y action;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx)
+		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
 		{
 			auto save = scn.save();
 			if (!subject.parse(scn, ctx)) return false;
