@@ -36,6 +36,7 @@ template<typename Scanner, typename Context> pig::rule<Scanner, Context> lisp_gr
 	auto list = ('(' > ws > *value > ')') % act_p > ws;
 	value = string / number / identifier / list > ws;
 
+	LOG(D, "before return");
 	return ws > *value > eof;
 }
 

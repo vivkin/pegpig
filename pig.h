@@ -1,7 +1,5 @@
 #pragma once
 
-#include <memory>
-
 namespace pig
 {
 	template<typename Iterator> struct scanner
@@ -38,17 +36,35 @@ namespace pig
 				virtual bool parse(Scanner &scn, Context &ctx) { return subject.parse(scn, ctx); }
 			};
 
-			std::unique_ptr<rule_base> subject;
+			rule_base *subject;
+			int refcount;
 		};
 
-		std::shared_ptr<rule_def> def = std::make_shared<rule_def>();
+		rule_def *def = nullptr;
 
-		rule() = default;
-		rule(const rule &) = default;
-		rule &operator=(const rule &) = default;
+		rule(): def(new rule_def{nullptr, 1}) { }
+		rule(const rule &x): def(x.def) { addref(); }
+		template<typename T> rule(const T &x): def(new rule_def{new rule_def::rule_subject<T>(x), 1}) { }
+		~rule() { release(); }
 
-		template<typename T> rule(const T &subject) { def->subject.reset(new rule_def::rule_subject<T>(subject)); }
-		template<typename T> rule &operator=(const T &subject) { def->subject.reset(new rule_def::rule_subject<T>(subject)); return *this; }
+		rule &operator=(const rule &x)
+		{
+			release();
+			def = x.def;
+			addref();
+			return *this;
+		}
+
+		template<typename T> rule &operator=(const T &x)
+		{
+			delete def->subject;
+			def->subject = new rule_def::rule_subject<T>(x);
+			return *this;
+		}
+
+		void addref() { ++def->refcount; }
+		void release() { if (--def->refcount == 0) { delete def->subject; delete def; } }
+
 		bool parse(Scanner &scn, Context &ctx) { return def->subject && def->subject->parse(scn, ctx); }
 	};
 
@@ -254,22 +270,22 @@ namespace pig
 		}
 	};
 
-	template<typename T> constexpr greedy_option<typename T::type> operator-(const T &x) { return {x}; }
-	template<typename T> constexpr kleene_star<typename T::type> operator*(const T &x) { return {x}; }
-	template<typename T> constexpr kleene_plus<typename T::type> operator+(const T &x) { return {x}; }
-	template<typename T> constexpr and_predicate<typename T::type> operator&(const T &x) { return {x}; }
-	template<typename T> constexpr not_predicate<typename T::type> operator!(const T &x) { return {x}; }
-	template<typename T, typename Y> constexpr sequence<typename T::type, typename Y::type> operator>(const T &x, const Y &y) { return {x, y}; }
-	template<typename T> constexpr sequence<typename T::type, char_parser> operator>(const T &x, char y) { return {x, char_parser{y}}; }
-	template<typename T> constexpr sequence<char_parser, typename T::type> operator>(char x, const T &y) { return {char_parser{x}, y}; }
-	template<typename T> constexpr sequence<typename T::type, literal> operator>(const T &x, const char *y) { return {x, literal{y}}; }
-	template<typename T> constexpr sequence<literal, typename T::type> operator>(const char *x, const T &y) { return {literal{x}, y}; }
-	template<typename T, typename Y> constexpr alternative<typename T::type, typename Y::type> operator/(const T &x, const Y &y) { return {x, y}; }
-	template<typename T> constexpr alternative<typename T::type, char_parser> operator/(const T &x, char y) { return {x, char_parser{y}}; }
-	template<typename T> constexpr alternative<char_parser, typename T::type> operator/(char x, const T &y) { return {char_parser{x}, y}; }
-	template<typename T> constexpr alternative<typename T::type, literal> operator/(const T &x, const char *y) { return {x, literal{y}}; }
-	template<typename T> constexpr alternative<literal, typename T::type> operator/(const char *x, const T &y) { return {literal{x}, y}; }
-	template<typename T, typename Y> constexpr action<typename T::type, Y> operator%(const T &x, const Y &y) { return {x, y}; }
+	template<typename T> constexpr greedy_option<typename T::type> operator-(T x) { return {x}; }
+	template<typename T> constexpr kleene_star<typename T::type> operator*(T x) { return {x}; }
+	template<typename T> constexpr kleene_plus<typename T::type> operator+(T x) { return {x}; }
+	template<typename T> constexpr and_predicate<typename T::type> operator&(T x) { return {x}; }
+	template<typename T> constexpr not_predicate<typename T::type> operator!(T x) { return {x}; }
+	template<typename T, typename Y> constexpr sequence<typename T::type, typename Y::type> operator>(T x, Y y) { return {x, y}; }
+	template<typename T> constexpr sequence<typename T::type, char_parser> operator>(T x, char y) { return {x, char_parser{y}}; }
+	template<typename T> constexpr sequence<char_parser, typename T::type> operator>(char x, T y) { return {char_parser{x}, y}; }
+	template<typename T> constexpr sequence<typename T::type, literal> operator>(T x, const char *y) { return {x, literal{y}}; }
+	template<typename T> constexpr sequence<literal, typename T::type> operator>(const char *x, T y) { return {literal{x}, y}; }
+	template<typename T, typename Y> constexpr alternative<typename T::type, typename Y::type> operator/(T x, Y y) { return {x, y}; }
+	template<typename T> constexpr alternative<typename T::type, char_parser> operator/(T x, char y) { return {x, char_parser{y}}; }
+	template<typename T> constexpr alternative<char_parser, typename T::type> operator/(char x, T y) { return {char_parser{x}, y}; }
+	template<typename T> constexpr alternative<typename T::type, literal> operator/(T x, const char *y) { return {x, literal{y}}; }
+	template<typename T> constexpr alternative<literal, typename T::type> operator/(const char *x, T y) { return {literal{x}, y}; }
+	template<typename T, typename Y> constexpr action<typename T::type, Y> operator%(T x, Y y) { return {x, y}; }
 
 	constexpr auto eof = eof_parser();
 	constexpr auto any = any_parser();

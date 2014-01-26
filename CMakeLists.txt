@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(pegpig)
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -fno-rtti -fno-exceptions -Wno-unused-variable -msse4 -O3")
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Wno-comment -Wno-unused-parameter -Wno-unused-variable -fno-rtti -fno-exceptions -msse4 -Os")
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -ferror-limit=4")
 endif()
