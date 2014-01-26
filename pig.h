@@ -287,8 +287,6 @@ namespace pig
 	template<typename T> constexpr alternative<literal, typename T::type> operator/(const char *x, T y) { return {literal{x}, y}; }
 	template<typename T, typename Y> constexpr action<typename T::type, Y> operator%(T x, Y y) { return {x, y}; }
 
-	constexpr auto eof = eof_parser();
-	constexpr auto any = any_parser();
 	constexpr char_parser ch(char x) { return {x}; }
 	struct {
 		constexpr char_range operator[](const char (&x)[4]) { return {x[0], x[2]}; }
@@ -297,4 +295,16 @@ namespace pig
 	} rng;
 	typedef char_set set;
 	typedef literal lit;
+
+	constexpr auto eof = eof_parser();
+	constexpr auto any = any_parser();
+	constexpr auto eol = "\r\n" / set{"\n\r"} / eof;
+	constexpr auto space = set{"\t\n\v\f\r\x20"};
+	constexpr auto blank = set{"\t\x20"};
+	constexpr auto lower = rng["a-z"];
+	constexpr auto upper = rng["A-Z"];
+	constexpr auto digit = rng["0-9"];
+	constexpr auto alpha = lower / upper;
+	constexpr auto alnum = alpha / digit;
+	constexpr auto xdigit = digit / rng["a-fA-F"];
 }

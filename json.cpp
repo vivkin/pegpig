@@ -2,8 +2,6 @@
 #include <vector>
 #include "pig.h"
 
-#define LOG(tag, format, ...) fprintf(stderr, "%s/%s(%s:%d): " format "\n", #tag, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
-
 template<typename Scanner, typename Context> pig::rule<Scanner, Context> json_grammar()
 {
 	using namespace pig;
@@ -12,32 +10,30 @@ template<typename Scanner, typename Context> pig::rule<Scanner, Context> json_gr
 
 	auto act_p = [](const iterator_type &begin, const iterator_type &end, Context &ctx)
 	{
-		LOG(I, "%.*s", int(end - begin), &*begin);
+		fprintf(stderr, "%.*s\n", int(end - begin), &*begin);
 	};
 
-	auto ws = *set{" \t\r\n"};
-	auto sign = set{"-+"};
-	auto digit = rng["0-9"];
-	auto hexdigit = rng["0-9a-fA-F"];
+	auto spacing = *space;
 
 	auto simpleescape = '\\' > set{"\"\\/bfnrt"};
-	auto hexescape = "\\u" > +hexdigit;
+	auto hexescape = "\\u" > xdigit > xdigit > xdigit > xdigit;
 	auto stringchar = simpleescape / hexescape / (!ch('\\') > any);
-	auto string = '"' > *(!ch('"') > stringchar) % act_p > '"' > ws;
+	auto string = '"' > *(!ch('"') > stringchar) % act_p > '"' > spacing;
 
+	auto sign = -set{"-+"};
 	auto fraction = (*digit > '.' > +digit) / (+digit > '.');
-	auto exponent = set{"eE"} > -sign > +digit;
-	auto number = (-sign > (fraction > -exponent) / (+digit > exponent) / +digit) % act_p > ws;
+	auto exponent = set{"eE"} > sign > +digit;
+	auto number = (sign > (fraction > -exponent) / (+digit > exponent) / +digit) % act_p > spacing;
 
 	rule_type value;
-	auto colon = ':' > ws;
+	auto colon = ':' > spacing;
 	auto pair = string > colon > value;
-	auto comma = ',' > ws;
-	auto object = '{' > ws > -(pair > *(comma > pair)) > '}' > ws;
-	auto array = '[' > ws > -(value > *(comma > value)) > ']' > ws;
-	value = string / number / object / array / "true" / "false" / "null" > ws;
+	auto comma = ',' > spacing;
+	auto object = '{' > spacing > -(pair > *(comma > pair)) > '}' > spacing;
+	auto array = '[' > spacing > -(value > *(comma > value)) > ']' > spacing;
+	value = string / number / object / array / "true" / "false" / "null" > spacing;
 
-	return ws > value > eof;
+	return spacing > value > eof;
 }
 
 int main()
@@ -47,7 +43,6 @@ int main()
 	while (!feof(stdin))
 	{
 		size_t n = fread(buffer, 1, sizeof(buffer), stdin);
-		LOG(D, "%zd", n);
 		input.insert(input.end(), buffer, buffer + n);
 	}
 
@@ -60,6 +55,6 @@ int main()
 	}
 	else
 	{
-		LOG(D, "Error %s", &*scanner.position);
+		fprintf(stderr, "error: %s\n", &*scanner.position);
 	}
 }

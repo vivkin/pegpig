@@ -1,10 +1,8 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
+#include <stdio.h>
 #include <stack>
 #include "pig.h"
-
-#define LOG(tag, format, ...) fprintf(stderr, "%s/%s(%s:%d): " format "\n", #tag, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
 
 template<typename Scanner, typename Context> pig::rule<Scanner, Context> calc_grammar()
 {
@@ -38,18 +36,17 @@ template<typename Scanner, typename Context> pig::rule<Scanner, Context> calc_gr
 				ctx.push(l / r);
 				break;
 		}
-		LOG(D, "%.2f %.1s %.2f = %.2f (%zd)", l, begin, r, ctx.top(), ctx.size());
+		fprintf(stderr, "%.2f %.1s %.2f = %.2f\n", l, begin, r, ctx.top());
 	};
 
-	auto eol = "\r\n" / set{"\n\r"} / eof;
-	auto space = *set{" \t"};
-	auto left_brace = '(' > space;
-	auto right_brace = ')' > space;
-	auto add = '+' > space;
-	auto sub = '-' > space;
-	auto mul = '*' > space;
-	auto div = '/' > space;
-	auto number = (-set{"-+"} > +rng["0-9"]) % act_n > space;
+	auto spacing = *blank;
+	auto left_brace = '(' > spacing;
+	auto right_brace = ')' > spacing;
+	auto add = '+' > spacing;
+	auto sub = '-' > spacing;
+	auto mul = '*' > spacing;
+	auto div = '/' > spacing;
+	auto number = (-set{"-+"} > +digit) % act_n > spacing;
 
 	rule_type sum;
 	auto value = number / (left_brace > sum > right_brace);
@@ -71,16 +68,11 @@ int main()
 		context_type state;
 		if (grammar.parse(scanner, state) && scanner.eof())
 		{
-			while (!state.empty())
-			{
-				double v = state.top();
-				state.pop();
-				LOG(I, "%.2f", v);
-			}
+			fprintf(stderr, "= %.2f\n", state.top());
 		}
 		else
 		{
-			LOG(E, "Parsing error: '%s'", scanner.position);
+			fprintf(stderr, "error: %s\n", scanner.position);
 		}
 	}
 }
