@@ -4,6 +4,19 @@
 
 namespace pig
 {
+	struct cstr_scanner
+	{
+		typedef const char *iterator_type;
+
+		iterator_type first;
+
+		char operator*() const { return *first; }
+		void next() { ++first; }
+		bool eof() const { return *first == 0; }
+		iterator_type pos() const { return first; }
+		void restore(const iterator_type &saved) { first = saved; }
+	};
+
 	template<typename Iterator> struct scanner
 	{
 		using iterator_type = Iterator;
@@ -14,7 +27,7 @@ namespace pig
 		char operator*() const { return *first; }
 		void next() { ++first; }
 		bool eof() const { return first == last; }
-		iterator_type save() const { return first; }
+		iterator_type pos() const { return first; }
 		void restore(const iterator_type &saved) { first = saved; }
 	};
 
@@ -23,15 +36,8 @@ namespace pig
 		typedef rule<ID, Scanner, Context> type;
 		static std::function<bool (Scanner &, Context &)> rule_def;
 		rule() = default;
-		template<typename T> rule(const T &x)
-		{
-			rule_def = x;
-		}
-		template<typename T> rule &operator=(const T &x)
-		{
-			rule_def = x;
-			return *this;
-		} 
+		template<typename T> rule(const T &x) { rule_def = x; }
+		template<typename T> rule &operator=(const T &x) { rule_def = x; return *this; }
 		bool operator()(Scanner &scn, Context &ctx) const
 		{
 			return rule_def(scn, ctx);
@@ -121,7 +127,7 @@ namespace pig
 		const char *cstr;
 		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
-			auto save = scn.save();
+			auto save = scn.pos();
 			for (const char *str = cstr; *str && !scn.eof(); ++str, scn.next())
 			{
 				if (*str != *scn)
@@ -140,7 +146,7 @@ namespace pig
 		T subject;
 		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
-			auto save = scn.save();
+			auto save = scn.pos();
 			if (!subject(scn, ctx)) scn.restore(save);
 			return true;
 		}
@@ -152,14 +158,14 @@ namespace pig
 		T subject;
 		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
-			auto save = scn.save();
+			auto save = scn.pos();
 			if (!subject(scn, ctx))
 			{
 				scn.restore(save);
 				return true;
 			}
-			save = scn.save();
-			while (subject(scn, ctx)) save = scn.save();
+			save = scn.pos();
+			while (subject(scn, ctx)) save = scn.pos();
 			scn.restore(save);
 			return true;
 		}
@@ -172,8 +178,8 @@ namespace pig
 		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
 			if (!subject(scn, ctx)) return false;
-			auto save = scn.save();
-			while (subject(scn, ctx)) save = scn.save();
+			auto save = scn.pos();
+			while (subject(scn, ctx)) save = scn.pos();
 			scn.restore(save);
 			return true;
 		}
@@ -185,7 +191,7 @@ namespace pig
 		T subject;
 		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
-			auto save = scn.save();
+			auto save = scn.pos();
 			bool result = subject(scn, ctx);
 			scn.restore(save);
 			return result;
@@ -198,7 +204,7 @@ namespace pig
 		T subject;
 		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
-			auto save = scn.save();
+			auto save = scn.pos();
 			bool result = !subject(scn, ctx);
 			scn.restore(save);
 			return result;
@@ -224,7 +230,7 @@ namespace pig
 		Y right;
 		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
-			auto save = scn.save();
+			auto save = scn.pos();
 			if (left(scn, ctx)) return true;
 			scn.restore(save);
 			return right(scn, ctx);
@@ -238,9 +244,9 @@ namespace pig
 		Y action;
 		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
-			auto save = scn.save();
+			auto save = scn.pos();
 			if (!subject(scn, ctx)) return false;
-			action(save, scn.save(), ctx);
+			action(save, scn.pos(), ctx);
 			return true;
 		}
 	};

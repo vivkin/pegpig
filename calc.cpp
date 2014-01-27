@@ -47,8 +47,11 @@ template<typename Scanner, typename Context> pig::rule<class Calculator, Scanner
 	auto number = -set{"-+"} > +digit >= act_n > spacing;
 
 	rule<class sum, Scanner, Context> sum;
-	auto value = number / (left_brace > sum > right_brace);
-	auto product = value > *((mul > value >= act_op) / (div > value >= act_op));
+	rule<class value, Scanner, Context> value;
+	rule<class product, Scanner, Context> product;
+
+	value = number / (left_brace > sum > right_brace);
+	product = value > *((mul > value >= act_op) / (div > value >= act_op));
 	sum = product > *((add > product >= act_op) / (sub > product >= act_op));
 
 	return sum > eol;
@@ -56,13 +59,13 @@ template<typename Scanner, typename Context> pig::rule<class Calculator, Scanner
 
 int main()
 {
-	typedef pig::scanner<const char *> scanner_type;
+	typedef pig::cstr_scanner scanner_type;
 	typedef std::stack<double> context_type;
 	auto grammar = calc_grammar<scanner_type, context_type>();
 	char buffer[1024];
 	while (fgets(buffer, sizeof(buffer), stdin))
 	{
-		scanner_type scanner{buffer, buffer + strlen(buffer)};
+		scanner_type scanner{buffer};
 		context_type state;
 		if (grammar(scanner, state) && scanner.eof())
 		{
