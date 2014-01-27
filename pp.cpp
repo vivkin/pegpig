@@ -15,8 +15,10 @@ int main(int argc, char **argv)
 
 	auto set_filename = [](const char *first, const char *last, context &ctx)
 	{
-		memcpy(ctx.include_filename, first, last - first);
-		ctx.include_filename[last - first] = '\0';
+		size_t n = last - first;
+		if (n > sizeof(ctx.include_filename) - 1) n = sizeof(ctx.include_filename) - 1;
+		memcpy(ctx.include_filename, first, n);
+		ctx.include_filename[n] = '\0';
 	};
 	auto include_file = [](const char *first, const char *last, context &ctx)
 	{
@@ -25,10 +27,13 @@ int main(int argc, char **argv)
 	auto inc_line_number = [](const char *first, const char *last, context &ctx) { ++ctx.line_number; };
 
 	auto spacing = *blank;
-	auto skip = *(!eol > any);
-	auto pragma = '#' > spacing > "pragma" > spacing > "include" > spacing > '"' > *(!ch('"') > any) % set_filename > '"';
-	auto line = (spacing > pragma > skip) % include_file / skip > eol >= inc_line_number;
-	auto pp = *(!eof > line) > eof;
+	auto skip = *(!eol > any) > eol;
+	auto filename = '"' > *(!ch('"') > any) % set_filename > '"';
+	auto include = "include" > spacing > filename;
+	auto pragma = '#' > spacing > "pragma";
+	auto directive = pragma > spacing > include > skip >= include_file;
+	auto line = directive / skip >= inc_line_number;
+	auto pp = *(!eof > spacing > line) > eof;
 
 	if (argc > 0)
 	{
