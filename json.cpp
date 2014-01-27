@@ -2,13 +2,12 @@
 #include <vector>
 #include "pig.h"
 
-template<typename Scanner, typename Context> pig::rule<Scanner, Context> json_grammar()
+template<typename Scanner, typename Context> pig::rule<class Json, Scanner, Context> json_grammar()
 {
 	using namespace pig;
 	typedef typename Scanner::iterator_type iterator_type;
-	typedef rule<Scanner, Context> rule_type;
 
-	auto act_p = [](const iterator_type &begin, const iterator_type &end, Context &ctx)
+	auto act_p = [](iterator_type begin, iterator_type end, Context &ctx)
 	{
 		fprintf(stderr, "%.*s\n", int(end - begin), &*begin);
 	};
@@ -25,7 +24,7 @@ template<typename Scanner, typename Context> pig::rule<Scanner, Context> json_gr
 	auto exponent = set{"eE"} > sign > +digit;
 	auto number = (sign > (fraction > -exponent) / (+digit > exponent) / +digit) % act_p > spacing;
 
-	rule_type value;
+	rule<class JsonValue, Scanner, Context> value;
 	auto colon = ':' > spacing;
 	auto pair = string > colon > value;
 	auto comma = ',' > spacing;
@@ -48,13 +47,13 @@ int main()
 
 	typedef pig::scanner<decltype(input.begin())> scanner_type;
 	auto grammar = json_grammar<scanner_type, int>();
-	scanner_type scanner(input.begin(), input.end());
+	scanner_type scanner{input.begin(), input.end()};
 	int state;
-	if (grammar.parse(scanner, state) && scanner.eof())
+	if (grammar(scanner, state) && scanner.eof())
 	{
 	}
 	else
 	{
-		fprintf(stderr, "error: %s\n", &*scanner.position);
+		fprintf(stderr, "error: %s\n", &*scanner.first);
 	}
 }

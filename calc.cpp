@@ -4,18 +4,16 @@
 #include <stack>
 #include "pig.h"
 
-template<typename Scanner, typename Context> pig::rule<Scanner, Context> calc_grammar()
+template<typename Scanner, typename Context> pig::rule<class Calculator, Scanner, Context> calc_grammar()
 {
 	using namespace pig;
-	typedef typename Scanner::iterator_type iterator_type;
-	typedef rule<Scanner, Context> rule_type;
 
-	auto act_n = [](const iterator_type &begin, const iterator_type &end, Context &ctx)
+	auto act_n = [](const char *begin, const char *end, Context &ctx)
 	{
 		ctx.push(strtod(begin, 0));
 	};
 
-	auto act_op = [](const iterator_type &begin, const iterator_type &end, Context &ctx)
+	auto act_op = [](const char *begin, const char *end, Context &ctx)
 	{
 		auto r = ctx.top();
 		ctx.pop();
@@ -48,7 +46,7 @@ template<typename Scanner, typename Context> pig::rule<Scanner, Context> calc_gr
 	auto div = '/' > spacing;
 	auto number = -set{"-+"} > +digit >= act_n > spacing;
 
-	rule_type sum;
+	rule<class sum, Scanner, Context> sum;
 	auto value = number / (left_brace > sum > right_brace);
 	auto product = value > *((mul > value >= act_op) / (div > value >= act_op));
 	sum = product > *((add > product >= act_op) / (sub > product >= act_op));
@@ -64,15 +62,15 @@ int main()
 	char buffer[1024];
 	while (fgets(buffer, sizeof(buffer), stdin))
 	{
-		scanner_type scanner(buffer, buffer + strlen(buffer));
+		scanner_type scanner{buffer, buffer + strlen(buffer)};
 		context_type state;
-		if (grammar.parse(scanner, state) && scanner.eof())
+		if (grammar(scanner, state) && scanner.eof())
 		{
 			fprintf(stderr, "= %.2f\n", state.top());
 		}
 		else
 		{
-			fprintf(stderr, "error: %s\n", scanner.position);
+			fprintf(stderr, "error: %s\n", scanner.first);
 		}
 	}
 }

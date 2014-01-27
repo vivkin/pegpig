@@ -1,83 +1,58 @@
 #pragma once
 
+#include <functional>
+
 namespace pig
 {
 	template<typename Iterator> struct scanner
 	{
-		typedef Iterator iterator_type;
+		using iterator_type = Iterator;
 
-		iterator_type position;
-		iterator_type end;
+		iterator_type first;
+		iterator_type last;
 
-		scanner(const iterator_type &begin, const iterator_type &end): position(begin), end(end) { }
-		char operator*() { return *position; }
-		void next() { ++position; }
-		iterator_type save() { return position; }
-		void restore(const iterator_type &saved) { position = saved; }
-		bool eof() { return position == end; }
+		char operator*() const { return *first; }
+		void next() { ++first; }
+		bool eof() const { return first == last; }
+		iterator_type save() const { return first; }
+		void restore(const iterator_type &saved) { first = saved; }
 	};
 
-	template<typename Scanner, typename Context> struct rule
+	template<typename ID, typename Scanner, typename Context> struct rule
 	{
-		typedef rule<Scanner, Context> type;
-
-		struct rule_def
+		typedef rule<ID, Scanner, Context> type;
+		static std::function<bool (Scanner &, Context &)> rule_def;
+		rule() = default;
+		template<typename T> rule(const T &x)
 		{
-			struct rule_base
-			{
-				virtual ~rule_base() { }
-				virtual bool parse(Scanner &scn, Context &ctx) const = 0;
-			};
-
-			template<typename T> struct rule_subject : rule_base
-			{
-				T subject;
-				rule_subject(const T &subject): subject(subject) { }
-				virtual bool parse(Scanner &scn, Context &ctx) const { return subject.parse(scn, ctx); }
-			};
-
-			rule_base *subject;
-			int refcount;
-		};
-
-		rule_def *def = nullptr;
-
-		rule(): def(new rule_def{nullptr, 1}) { }
-		rule(const rule &x): def(x.def) { addref(); }
-		template<typename T> rule(const T &x): def(new rule_def{new rule_def::rule_subject<T>(x), 1}) { }
-		~rule() { release(); }
-
-		rule &operator=(const rule &x)
-		{
-			release();
-			def = x.def;
-			addref();
-			return *this;
+			rule_def = x;
 		}
-
 		template<typename T> rule &operator=(const T &x)
 		{
-			delete def->subject;
-			def->subject = new rule_def::rule_subject<T>(x);
+			rule_def = x;
 			return *this;
+		} 
+		bool operator()(Scanner &scn, Context &ctx) const
+		{
+			return rule_def(scn, ctx);
 		}
-
-		void addref() { ++def->refcount; }
-		void release() { if (--def->refcount == 0) { delete def->subject; delete def; } }
-
-		bool parse(Scanner &scn, Context &ctx) const { return def->subject && def->subject->parse(scn, ctx); }
 	};
+
+	template<typename ID, typename Scanner, typename Context> std::function<bool (Scanner &, Context &)> rule<ID, Scanner, Context>::rule_def;
 
 	struct eof_parser
 	{
 		typedef eof_parser type;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const { return scn.eof(); }
+		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
+		{
+			return scn.eof();
+		}
 	};
 
 	struct any_parser
 	{
 		typedef any_parser type;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
+		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
 			if (!scn.eof())
 			{
@@ -92,7 +67,7 @@ namespace pig
 	{
 		typedef char_parser type;
 		char x;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
+		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
 			if (!scn.eof() && *scn == x)
 			{
@@ -107,7 +82,7 @@ namespace pig
 	{
 		typedef char_range type;
 		char x, y;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
+		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
 			if (!scn.eof() && (*scn >= x && *scn <= y))
 			{
@@ -122,7 +97,7 @@ namespace pig
 	{
 		typedef char_set type;
 		const char *cstr;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
+		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
 			if (!scn.eof())
 			{
@@ -144,7 +119,7 @@ namespace pig
 	{
 		typedef literal type;
 		const char *cstr;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
+		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
 			auto save = scn.save();
 			for (const char *str = cstr; *str && !scn.eof(); ++str, scn.next())
@@ -163,10 +138,10 @@ namespace pig
 	{
 		typedef greedy_option<T> type;
 		T subject;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
+		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
 			auto save = scn.save();
-			if (!subject.parse(scn, ctx)) scn.restore(save);
+			if (!subject(scn, ctx)) scn.restore(save);
 			return true;
 		}
 	};
@@ -175,16 +150,16 @@ namespace pig
 	{
 		typedef kleene_star<T> type;
 		T subject;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
+		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
 			auto save = scn.save();
-			if (!subject.parse(scn, ctx))
+			if (!subject(scn, ctx))
 			{
 				scn.restore(save);
 				return true;
 			}
 			save = scn.save();
-			while (subject.parse(scn, ctx)) save = scn.save();
+			while (subject(scn, ctx)) save = scn.save();
 			scn.restore(save);
 			return true;
 		}
@@ -194,11 +169,11 @@ namespace pig
 	{
 		typedef kleene_plus<T> type;
 		T subject;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
+		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
-			if (!subject.parse(scn, ctx)) return false;
+			if (!subject(scn, ctx)) return false;
 			auto save = scn.save();
-			while (subject.parse(scn, ctx)) save = scn.save();
+			while (subject(scn, ctx)) save = scn.save();
 			scn.restore(save);
 			return true;
 		}
@@ -208,10 +183,10 @@ namespace pig
 	{
 		typedef and_predicate<T> type;
 		T subject;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
+		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
 			auto save = scn.save();
-			bool result = subject.parse(scn, ctx);
+			bool result = subject(scn, ctx);
 			scn.restore(save);
 			return result;
 		}
@@ -221,10 +196,10 @@ namespace pig
 	{
 		typedef not_predicate<T> type;
 		T subject;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
+		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
 			auto save = scn.save();
-			bool result = !subject.parse(scn, ctx);
+			bool result = !subject(scn, ctx);
 			scn.restore(save);
 			return result;
 		}
@@ -235,10 +210,10 @@ namespace pig
 		typedef sequence<T, Y> type;
 		T left;
 		Y right;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
+		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
-			if (!left.parse(scn, ctx)) return false;
-			return right.parse(scn, ctx);
+			if (!left(scn, ctx)) return false;
+			return right(scn, ctx);
 		}
 	};
 
@@ -247,12 +222,12 @@ namespace pig
 		typedef alternative<T, Y> type;
 		T left;
 		Y right;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
+		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
 			auto save = scn.save();
-			if (left.parse(scn, ctx)) return true;
+			if (left(scn, ctx)) return true;
 			scn.restore(save);
-			return right.parse(scn, ctx);
+			return right(scn, ctx);
 		}
 	};
 
@@ -261,10 +236,10 @@ namespace pig
 		typedef action<T, Y> type;
 		T subject;
 		Y action;
-		template<typename Scanner, typename Context> bool parse(Scanner &scn, Context &ctx) const
+		template<typename Scanner, typename Context> bool operator()(Scanner &scn, Context &ctx) const
 		{
 			auto save = scn.save();
-			if (!subject.parse(scn, ctx)) return false;
+			if (!subject(scn, ctx)) return false;
 			action(save, scn.save(), ctx);
 			return true;
 		}
@@ -297,15 +272,15 @@ namespace pig
 	typedef char_set set;
 	typedef literal lit;
 
-	constexpr auto eof = eof_parser();
-	constexpr auto any = any_parser();
-	constexpr auto eol = "\r\n" / set{"\n\r"} / eof;
-	constexpr auto space = set{"\t\n\v\f\r\x20"};
-	constexpr auto blank = set{"\t\x20"};
-	constexpr auto lower = rng["a-z"];
-	constexpr auto upper = rng["A-Z"];
-	constexpr auto digit = rng["0-9"];
-	constexpr auto alpha = lower / upper;
-	constexpr auto alnum = alpha / digit;
-	constexpr auto xdigit = digit / rng["a-fA-F"];
+	const auto eof = eof_parser();
+	const auto any = any_parser();
+	const auto eol = "\r\n" / set{"\n\r"} / eof;
+	const auto space = set{"\t\n\v\f\r\x20"};
+	const auto blank = set{"\t\x20"};
+	const auto lower = rng["a-z"];
+	const auto upper = rng["A-Z"];
+	const auto digit = rng["0-9"];
+	const auto alpha = lower / upper;
+	const auto alnum = alpha / digit;
+	const auto xdigit = digit / rng["a-fA-F"];
 }
