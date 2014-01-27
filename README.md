@@ -21,4 +21,4 @@ Expression|C++|Class|Description
 `!e`|`!e`|not_predicate| Not-predicate
 `e1 e2`|`e1 > e2`|sequence|Sequence
 `e1 / e2`|`e1 / e2`|alternative|Prioritized choice
- |`e % action`|action|Semantic action
+ |`e >= action` or `e % action`|action|Semantic action
