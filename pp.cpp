@@ -25,11 +25,10 @@ int main(int argc, char **argv)
 	auto inc_line_number = [](const char *first, const char *last, context &ctx) { ++ctx.line_number; };
 
 	auto spacing = *blank;
-	auto pragma = '#' > spacing > "pragma" > spacing;
-	auto include = "include" > spacing > '"' > *(!ch('"') > any) % set_filename > '"' > spacing;
 	auto skip = *(!eol > any);
-	auto line = (pragma > include) % include_file / skip > eol >= inc_line_number;
-	auto pp = *(!eof > line) > eof;
+	auto pragma = '#' > spacing > "pragma" > spacing > "include" > spacing > '"' > *(!ch('"') > any) % set_filename > '"';
+	auto line = (spacing > pragma > skip) % include_file / skip > eol >= inc_line_number;
+	auto pp = *line > eof;//*(!eof > line) > eof;
 
 	if (argc > 0)
 	{
