@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 	auto skip = *(!eol > any);
 	auto pragma = '#' > spacing > "pragma" > spacing > "include" > spacing > '"' > *(!ch('"') > any) % set_filename > '"';
 	auto line = (spacing > pragma > skip) % include_file / skip > eol >= inc_line_number;
-	auto pp = *line > eof;//*(!eof > line) > eof;
+	auto pp = *(!eof > line) > eof;
 
 	if (argc > 0)
 	{
